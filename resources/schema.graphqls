@@ -1,0 +1,18 @@
+
+# --------------------------------------------
+#   This an Example Schema file.
+# --------------------------------------------
+
+schema {
+    query: Echo
+}
+
+# This is Echo type example.
+# Just dummy type for testing any features.
+type Echo {
+
+    # Method "say" provides one required argument "message"
+    # and return your value of "message" argument.
+    say(message: String!): String!
+
+}

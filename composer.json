@@ -1,0 +1,55 @@
+{
+    "name": "railt/laravel-adapter",
+    "type": "library",
+    "description": "The Laravel Framework Service Provider for Railt",
+    "license": "MIT",
+    "keywords": [ "graphql", "railt", "laravel", "provider", "adapter", "bridge" ],
+    "homepage": "http://railt.org",
+    "version": "dev-master",
+    "support": {
+        "issues": "https://github.com/railt/railt/issues",
+        "source": "https://github.com/railt/railt"
+    },
+    "authors": [
+        {
+            "name": "Kirill Nesmeyanov",
+            "email": "nesk@xakep.ru"
+        }
+    ],
+    "require": {
+        "php": ">=7.1",
+        "railt/railt": "self.version",
+        "illuminate/http": "5.1.*|5.2.*|5.3.*|5.4.*|5.5.*",
+        "illuminate/support": "5.1.*|5.2.*|5.3.*|5.4.*|5.5.*",
+        "illuminate/container": "5.1.*|5.2.*|5.3.*|5.4.*|5.5.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Railt\\Adapters\\Laravel\\": "src/"
+        }
+    },
+    "require-dev": {
+        "laravel/framework": "5.1.*|5.2.*|5.3.*|5.4.*|5.5.*",
+        "railt/webonyx-adapter": "self.version"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Railt\\Adapters\\Laravel\\Tests\\": "tests/"
+        }
+    },
+    "suggest": {
+        "railt/webonyx-adapter": "Webonyx GraphQL driver support (~self.version)"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Railt\\Adapters\\Laravel\\RailtServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
