@@ -9,8 +9,10 @@ declare(strict_types=1);
 
 namespace Railt\Adapters\Laravel\Controllers;
 
+use Illuminate\Contracts\View\View;
 use Railt\Endpoint;
 use Railt\Parser\File;
+use Railt\Reflection\Autoloader;
 use Railt\Routing\Router;
 use Illuminate\Http\Request;
 use Railt\Http\RequestInterface;
@@ -39,32 +41,12 @@ class GraphQLController
     public function __construct(RailtConfiguration $config, Request $request)
     {
         $this->config = $config;
-        $this->action = $request->route()->getName();
-    }
 
-    /**
-     * @param Endpoint $endpoint
-     * @param array $config
-     * @throws \InvalidArgumentException
-     */
-    private function registerAutoloader(Endpoint $endpoint, array $config): void
-    {
-        $autoloader = $endpoint->getAutoloader();
-
-        foreach ($config as $autoload) {
-            if (is_callable($autoload)) {
-                $autoloader->autoload($autoload);
-                continue;
-            }
-
-            if (is_string($autoload) || is_array($autoload)) {
-                $autoloader->dir($autoload);
-                continue;
-            }
-
-            throw new \InvalidArgumentException('Invalid autoload path type ' . gettype($autoload));
+        if ($request->route()) {
+            $this->action = $request->route()->getName();
         }
     }
+
 
     /**
      * @param Endpoint $endpoint
@@ -78,38 +60,58 @@ class GraphQLController
      */
     public function index(Endpoint $endpoint, RequestInterface $request): array
     {
-        $this->registerRouter($endpoint->getRouter());
+        $this->registerAutoloader($endpoint->getAutoloader());
 
-        $schema = File::path($this->getSchemaPathname());
+        $this->getRouter($endpoint->getRouter());
 
-        $this->registerAutoloader($endpoint, $this->config->getAutoloadPaths($this->action));
-
-        $response = $endpoint->request($schema, $request);
+        $response = $endpoint->request($this->getSchemaFile(), $request);
 
         return $response->toArray();
     }
 
     /**
      * @param Router $router
-     * @throws \LogicException
      */
-    private function registerRouter(Router $router): void
+    private function getRouter(Router $router): void
     {
-        $file = $this->config->getRoutesFile($this->action);
+        $path = $this->config->getRouterPathname($this->action);
 
-        if (! is_file($file)) {
-            throw new \InvalidArgumentException('Railt router file "' . $file . '" not exists.');
+        if (is_file($path)) {
+            require $path;
         }
-
-        require $file;
     }
 
     /**
-     * @return string
-     * @throws \LogicException
+     * @return View
      */
-    private function getSchemaPathname(): string
+    public function graphiql(): View
     {
-        return $this->config->getSchemaFile($this->action);
+        $route = $this->config->getRouteForAction($this->action);
+
+        return view('railt::graphiql', [
+            'route' => $route
+        ]);
+    }
+
+    /**
+     * @return File
+     */
+    private function getSchemaFile(): File
+    {
+        return File::path($this->config->getSchemaPathname($this->action));
+    }
+
+    /**
+     * @param Autoloader $autoloader
+     */
+    private function registerAutoloader(Autoloader $autoloader): void
+    {
+        foreach ($this->config->getAutoloadPaths($this->action) as $rule) {
+            if (is_callable($rule)) {
+                $autoloader->autoload($rule);
+            } elseif (is_string($rule) || is_array($rule)) {
+                $autoloader->dir($rule);
+            }
+        }
     }
 }

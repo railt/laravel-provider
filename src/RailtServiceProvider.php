@@ -27,11 +27,12 @@ class RailtServiceProvider extends ServiceProvider
     /**
      * Local config file path
      */
-    private const PACKAGE_CONFIG_PATH = __DIR__ . '/../resources/railt.php';
-    private const PACKAGE_ROUTER_PATH = __DIR__ . '/../resources/routes.php';
-    private const PACKAGE_SCHEMA_PATH = __DIR__ . '/../resources/schema.graphqls';
-    private const PACKAGE_CONTROLLER_PATH = __DIR__ . '/../resources/EchoController.php';
-    private const PACKAGE_DECORATOR_PATH = __DIR__ . '/../resources/UpperCaseDecorator.php';
+    private const CONFIG_PATH = __DIR__ . '/../resources/config/railt.php';
+
+    /**
+     * Views path
+     */
+    private const VIEWS_PATH = __DIR__ . '/../resources/views';
 
     /**
      * @return void
@@ -41,7 +42,8 @@ class RailtServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->shareResources();
-        $this->mergeConfigFrom(self::PACKAGE_CONFIG_PATH, 'railt');
+        $this->mergeConfigFrom(self::CONFIG_PATH, 'railt');
+        $this->loadViewsFrom(self::VIEWS_PATH, 'railt');
 
         $this->registerRequestDependency();
         $this->registerConfigurationDependency();
@@ -53,12 +55,14 @@ class RailtServiceProvider extends ServiceProvider
      */
     private function shareResources(): void
     {
+        $res = __DIR__ . '/../resources/';
+
         $this->publishes([
-            self::PACKAGE_CONFIG_PATH     => config_path('railt.php'),
-            self::PACKAGE_ROUTER_PATH     => base_path('routes/graphql.php'),
-            self::PACKAGE_SCHEMA_PATH     => resource_path('graphql/schema.graphqls'),
-            self::PACKAGE_CONTROLLER_PATH => app_path('GraphQL/Controllers/EchoController.php'),
-            self::PACKAGE_DECORATOR_PATH  => app_path('GraphQL/Decorators/UpperCaseDecorator.php'),
+            self::CONFIG_PATH                           => config_path('railt.php'),
+            $res . 'router/graphql.php'                 => base_path('routes/graphql.php'),
+            $res . 'schema/schema.graphqls'             => resource_path('graphql/schema.graphqls'),
+            $res . 'controllers/EchoController.php'     => app_path('GraphQL/Controllers/EchoController.php'),
+            $res . 'controllers/UpperCaseDecorator.php' => app_path('GraphQL/Decorators/UpperCaseDecorator.php'),
         ], 'railt');
     }
 
@@ -104,23 +108,9 @@ class RailtServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        /**
-         * Register routes
-         */
-        $this->registerRoutes(
-            $this->app->make(Registrar::class),
-            $this->app->make(RailtConfiguration::class)
-        );
-    }
+        /** @var RailtConfiguration $config */
+        $config = $this->app->make(RailtConfiguration::class);
 
-    /**
-     * @param Registrar $router
-     * @param RailtConfiguration $config
-     */
-    private function registerRoutes(Registrar $router, RailtConfiguration $config): void
-    {
-        foreach ($config->getRoutes() as $url => $routeConfig) {
-            $router->match(['GET', 'POST'], $url, $routeConfig);
-        }
+        $config->registerRoutes($this->app->make(Registrar::class));
     }
 }

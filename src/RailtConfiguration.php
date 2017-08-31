@@ -10,9 +10,9 @@ declare(strict_types=1);
 namespace Railt\Adapters\Laravel;
 
 use Illuminate\Config\Repository;
+use Illuminate\Contracts\Routing\Registrar;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use Railt\Adapters\Laravel\Controllers\GraphQLController;
 
 /**
  * Class RailtConfiguration
@@ -21,96 +21,120 @@ use Railt\Adapters\Laravel\Controllers\GraphQLController;
 class RailtConfiguration extends Repository
 {
     /**
-     * @return iterable
+     * GraphiQL Action
      */
-    public function getRoutes(): iterable
+    private const GRAPHIQL_ROUTE_NAME = 'graphiql.a';
+
+    /**
+     * @param Registrar $registrar
+     */
+    public function registerRoutes(Registrar $registrar)
+    {
+        $this->registerRoutesCollection($registrar, 'endpoints', '');
+        $this->registerRoutesCollection($registrar, 'graphiql', self::GRAPHIQL_ROUTE_NAME);
+    }
+
+    /**
+     * @param Registrar $registrar
+     * @param string $key
+     * @param string $name
+     */
+    private function registerRoutesCollection(Registrar $registrar, string $key, string $name = '')
     {
         $prefix = $this->getRoutesPrefix();
 
-        $routes = (array)$this->get('routes', []);
+        foreach ((array)$this->get($key, []) as $id => $config) {
+            if (! ($config['enabled'] ?? true)) {
+                continue;
+            }
 
-        foreach ($routes as $name => $config) {
-            $name = is_int($name) ? 'default' : $name;
-
-            yield $config['url'] => [
-                'uses' => Arr::get($config, 'uses', GraphQLController::class . '@index'),
-                'as'   => $prefix . $name,
-            ];
+            $this->registerRoute($registrar, $prefix . $name . (string)$id, $config);
         }
     }
 
     /**
      * @return string
      */
-    public function getRoutesPrefix(): string
+    private function getRoutesPrefix(): string
     {
-        return $this->get('config.routes_prefix', 'railt.');
+        return $this->get('prefix', 'railt.');
     }
 
     /**
-     * @param string $actionName
-     * @return string
-     * @throws \LogicException
-     */
-    public function getRoutesFile(string $actionName): string
-    {
-        return (string)$this->getByAction(
-            $actionName,
-            'router',
-            base_path('routes/graphql.php')
-        );
-    }
-
-    /**
-     * @param string $actionName
+     * @param Registrar $registrar
      * @param string $key
-     * @param null $default
-     * @return mixed
-     * @throws \LogicException
+     * @param array $config
      */
-    private function getByAction(string $actionName, string $key, $default = null)
+    private function registerRoute(Registrar $registrar, string $key, array $config)
     {
-        $config = $this->getConfigName($actionName);
+        $methods = Arr::get($config, 'methods', ['GET', 'POST']);
+        $uri     = $config['uri'] ?? '/graphql';
 
-        $value = $this->get($config . '.' . $key, $default);
-
-        if ($value === null) {
-            throw new \LogicException('"' . $config . '.' . $key . '" missing in railt configuration file.');
-        }
-
-        return $value;
+        $registrar->match($methods, $uri, $config['uses'] ?? null)
+            ->name($key)
+            ->middleware($config['middleware'] ?? []);
     }
 
     /**
-     * @param string $actionName
+     * @param string $action
+     * @param string $prefix
      * @return string
      */
-    private function getConfigName(string $actionName): string
+    private function getNodeName(string $action, string $prefix = ''): string
     {
-        return Str::replaceFirst($this->getRoutesPrefix(), '', $actionName);
+        $default = $action ?? $this->get('default', 'default');
+
+        return Str::replaceFirst($this->getRoutesPrefix() . $prefix, '', $default);
     }
 
     /**
-     * @param string $actionName
-     * @return string
-     * @throws \LogicException
-     */
-    public function getSchemaFile(string $actionName): string
-    {
-        return (string)$this->getByAction(
-            $actionName,
-            'schema',
-            resource_path('graphql/schema.graphqls')
-        );
-    }
-
-    /**
-     * @param string $actionName
+     * @param string|null $action
+     * @param string $prefix
      * @return array
-     * @throws \LogicException
      */
-    public function getAutoloadPaths(string $actionName): array
+    private function getData(string $action, string $prefix = ''): array
     {
-        return (array)$this->getByAction($actionName, 'autoload', []);
+        $key = $this->getNodeName($action, $prefix);
+
+        return (array)$this->get('endpoints.' . $key, []);
+    }
+
+    /**
+     * @param string $action
+     * @return string
+     */
+    public function getSchemaPathname(string $action): string
+    {
+        return (string)Arr::get($this->getData($action), 'schema');
+    }
+
+    /**
+     * @param string $action
+     * @return string
+     */
+    public function getRouterPathname(string $action): string
+    {
+        return (string)Arr::get($this->getData($action), 'router');
+    }
+
+    /**
+     * @param string $action
+     * @return array
+     */
+    public function getAutoloadPaths(string $action): array
+    {
+        return (array)Arr::get($this->getData($action), 'autoload');
+    }
+
+    /**
+     * @param string $action
+     * @return string
+     */
+    public function getRouteForAction(string $action): string
+    {
+        $key = $this->getNodeName($action, self::GRAPHIQL_ROUTE_NAME);
+        $key = $this->get('graphiql.' . $key, [])['endpoint'] ?? 'default';
+
+        return route($this->getRoutesPrefix() . $key);
     }
 }
