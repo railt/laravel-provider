@@ -9,14 +9,14 @@ declare(strict_types=1);
 
 namespace Railt\Adapters\Laravel;
 
-use Psr\Log\LoggerInterface;
-use Railt\Foundation\Endpoint;
-use Railt\Http\Request;
-use Railt\Http\RequestInterface;
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Routing\Registrar;
 use Illuminate\Http\Request as LaravelRequest;
+use Illuminate\Support\ServiceProvider;
+use Psr\Log\LoggerInterface;
+use Railt\Endpoint;
+use Railt\Http\Request;
+use Railt\Http\RequestInterface;
 
 /**
  * Class RailtServiceProvider
@@ -30,6 +30,8 @@ class RailtServiceProvider extends ServiceProvider
     private const PACKAGE_CONFIG_PATH = __DIR__ . '/../resources/railt.php';
     private const PACKAGE_ROUTER_PATH = __DIR__ . '/../resources/routes.php';
     private const PACKAGE_SCHEMA_PATH = __DIR__ . '/../resources/schema.graphqls';
+    private const PACKAGE_CONTROLLER_PATH = __DIR__ . '/../resources/EchoController.php';
+    private const PACKAGE_DECORATOR_PATH = __DIR__ . '/../resources/UpperCaseDecorator.php';
 
     /**
      * @return void
@@ -44,6 +46,57 @@ class RailtServiceProvider extends ServiceProvider
         $this->registerRequestDependency();
         $this->registerConfigurationDependency();
         $this->registerEndpointDependency();
+    }
+
+    /**
+     * @return void
+     */
+    private function shareResources(): void
+    {
+        $this->publishes([
+            self::PACKAGE_CONFIG_PATH     => config_path('railt.php'),
+            self::PACKAGE_ROUTER_PATH     => base_path('routes/graphql.php'),
+            self::PACKAGE_SCHEMA_PATH     => resource_path('graphql/schema.graphqls'),
+            self::PACKAGE_CONTROLLER_PATH => app_path('GraphQL/Controllers/EchoController.php'),
+            self::PACKAGE_DECORATOR_PATH  => app_path('GraphQL/Decorators/UpperCaseDecorator.php'),
+        ], 'railt');
+    }
+
+    /**
+     * @return void
+     */
+    private function registerRequestDependency(): void
+    {
+        $this->app->singleton(RequestInterface::class, function () {
+            return Request::create($this->app->make(LaravelRequest::class));
+        });
+    }
+
+    /**
+     * @return void
+     */
+    private function registerConfigurationDependency(): void
+    {
+        $this->app->singleton(RailtConfiguration::class, function () {
+            $config = $this->app->make(Repository::class);
+
+            return new RailtConfiguration($config->get('railt', []));
+        });
+    }
+
+    /**
+     * @return void
+     * @throws \Railt\Reflection\Exceptions\TypeConflictException
+     * @throws \Railt\Parser\Exceptions\ParserException
+     */
+    private function registerEndpointDependency(): void
+    {
+        $this->app->singleton(Endpoint::class, function () {
+            return new Endpoint(
+                new ContainerBridge($this->app),
+                $this->app->make(LoggerInterface::class)
+            );
+        });
     }
 
     /**
@@ -69,54 +122,5 @@ class RailtServiceProvider extends ServiceProvider
         foreach ($config->getRoutes() as $url => $routeConfig) {
             $router->match(['GET', 'POST'], $url, $routeConfig);
         }
-    }
-
-    /**
-     * @return void
-     * @throws \Railt\Reflection\Exceptions\TypeConflictException
-     * @throws \Railt\Parser\Exceptions\ParserException
-     */
-    private function registerEndpointDependency(): void
-    {
-        $this->app->singleton(Endpoint::class, function () {
-            return new Endpoint(
-                new ContainerBridge($this->app),
-                $this->app->make(LoggerInterface::class)
-            );
-        });
-    }
-
-    /**
-     * @return void
-     */
-    private function registerConfigurationDependency(): void
-    {
-        $this->app->singleton(RailtConfiguration::class, function () {
-            $config = $this->app->make(Repository::class);
-
-            return new RailtConfiguration($config->get('railt', []));
-        });
-    }
-
-    /**
-     * @return void
-     */
-    private function registerRequestDependency(): void
-    {
-        $this->app->singleton(RequestInterface::class, function () {
-            return Request::create($this->app->make(LaravelRequest::class));
-        });
-    }
-
-    /**
-     * @return void
-     */
-    private function shareResources(): void
-    {
-        $this->publishes([
-            self::PACKAGE_CONFIG_PATH => config_path('railt.php'),
-            self::PACKAGE_ROUTER_PATH => base_path('routes/graphql.php'),
-            self::PACKAGE_SCHEMA_PATH => resource_path('graphql/schema.graphqls'),
-        ]);
     }
 }

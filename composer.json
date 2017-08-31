@@ -19,9 +19,10 @@
     "require": {
         "php": ">=7.1",
         "railt/railt": "self.version",
-        "illuminate/http": "5.1.*|5.2.*|5.3.*|5.4.*|5.5.*",
-        "illuminate/support": "5.1.*|5.2.*|5.3.*|5.4.*|5.5.*",
-        "illuminate/container": "5.1.*|5.2.*|5.3.*|5.4.*|5.5.*"
+        "illuminate/http": "~5.1",
+        "illuminate/support": "~5.1",
+        "illuminate/config": "~5.1",
+        "illuminate/container": "~5.1"
     },
     "autoload": {
         "psr-4": {
@@ -29,7 +30,7 @@
         }
     },
     "require-dev": {
-        "laravel/framework": "5.1.*|5.2.*|5.3.*|5.4.*|5.5.*",
+        "laravel/framework": "~5.1",
         "railt/webonyx-adapter": "self.version"
     },
     "autoload-dev": {

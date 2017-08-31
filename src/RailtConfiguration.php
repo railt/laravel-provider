@@ -9,9 +9,9 @@ declare(strict_types=1);
 
 namespace Railt\Adapters\Laravel;
 
+use Illuminate\Config\Repository;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use Illuminate\Config\Repository;
 use Railt\Adapters\Laravel\Controllers\GraphQLController;
 
 /**
@@ -50,26 +50,32 @@ class RailtConfiguration extends Repository
     /**
      * @param string $actionName
      * @return string
+     * @throws \LogicException
      */
-    private function getConfigName(string $actionName): string
+    public function getRoutesFile(string $actionName): string
     {
-        return Str::replaceFirst($this->getRoutesPrefix(), '', $actionName);
+        return (string)$this->getByAction(
+            $actionName,
+            'router',
+            base_path('routes/graphql.php')
+        );
     }
 
     /**
      * @param string $actionName
      * @param string $key
+     * @param null $default
      * @return mixed
      * @throws \LogicException
      */
-    private function getByAction(string $actionName, string $key)
+    private function getByAction(string $actionName, string $key, $default = null)
     {
         $config = $this->getConfigName($actionName);
 
-        $value = $this->get($config . '.' . $key);
+        $value = $this->get($config . '.' . $key, $default);
 
         if ($value === null) {
-            throw new \LogicException('"' . $config . '.'  .$key . '" missing in railt configuration file.');
+            throw new \LogicException('"' . $config . '.' . $key . '" missing in railt configuration file.');
         }
 
         return $value;
@@ -78,11 +84,10 @@ class RailtConfiguration extends Repository
     /**
      * @param string $actionName
      * @return string
-     * @throws \LogicException
      */
-    public function getRoutesFile(string $actionName): string
+    private function getConfigName(string $actionName): string
     {
-        return (string)$this->getByAction($actionName, 'router');
+        return Str::replaceFirst($this->getRoutesPrefix(), '', $actionName);
     }
 
     /**
@@ -92,6 +97,20 @@ class RailtConfiguration extends Repository
      */
     public function getSchemaFile(string $actionName): string
     {
-        return (string)$this->getByAction($actionName, 'schema');
+        return (string)$this->getByAction(
+            $actionName,
+            'schema',
+            resource_path('graphql/schema.graphqls')
+        );
+    }
+
+    /**
+     * @param string $actionName
+     * @return array
+     * @throws \LogicException
+     */
+    public function getAutoloadPaths(string $actionName): array
+    {
+        return (array)$this->getByAction($actionName, 'autoload', []);
     }
 }

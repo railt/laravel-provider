@@ -1,6 +1,3 @@
 .idea/
 vendor/
-docs/cache/
-*.phpt.out
-*.phpt.exp
-*.phpt.diff
+composer.lock

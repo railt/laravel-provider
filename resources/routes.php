@@ -9,8 +9,13 @@
  */
 declare(strict_types=1);
 
-use Railt\Adapters\RequestInterface;
+/**
+ * Controllers
+ */
+$router->on('say', 'App\\GraphQL\\Controllers\\EchoController@say');
 
-$router->on('say', function (RequestInterface $request) {
-    return 'Your message is: ' . $request->get('message');
-});
+
+/**
+ * Decorators
+ */
+$router->on('*', 'App\\GraphQL\\Decorators\\UpperCaseDecorator@upper');

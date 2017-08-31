@@ -9,15 +9,14 @@ declare(strict_types=1);
 
 namespace Railt\Adapters\Laravel;
 
-use Psr\Container\ContainerInterface;
-use Railt\Container\AllowsInvocations;
+use Railt\Container\ContainerInterface;
 use Illuminate\Contracts\Container\Container;
 
 /**
  * Class ContainerBridge
  * @package Railt\Adapters\Laravel
  */
-class ContainerBridge implements ContainerInterface, AllowsInvocations
+class ContainerBridge implements ContainerInterface
 {
     /**
      * @var Container
@@ -36,10 +35,9 @@ class ContainerBridge implements ContainerInterface, AllowsInvocations
     /**
      * @param callable|\ReflectionFunctionAbstract|string $action
      * @param array $params
-     * @param string $namespace
      * @return mixed
      */
-    public function call($action, array $params = [], string $namespace = '')
+    public function call($action, array $params = [])
     {
         return $this->laravel->call($action, $params);
     }
