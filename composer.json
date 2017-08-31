@@ -31,8 +31,7 @@
     },
     "require-dev": {
         "laravel/framework": "~5.1",
-        "phpunit/phpunit": "~6.1",
-        "railt/webonyx-adapter": "self.version"
+        "phpunit/phpunit": "~6.1"
     },
     "autoload-dev": {
         "psr-4": {
