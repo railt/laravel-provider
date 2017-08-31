@@ -13,7 +13,9 @@
 
 The Laravel Framework ServiceProvider for Railt.
 
-## Laravel 5.5+
+## Installation
+
+### Laravel 5.5+
 
 > Make sure that you are using at least PHP 7.1
 
@@ -22,6 +24,7 @@ The Laravel Framework ServiceProvider for Railt.
 
 ### Laravel 5.4 or less
 
+- `composer require railt/laravel-adapter`
 - Add the service provider to your `app/config/app.php` file:
 ```php
 'providers' => [
