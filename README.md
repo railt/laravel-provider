@@ -13,14 +13,11 @@
 
 The Laravel Framework ServiceProvider for Railt.
 
-## Installation
+## Laravel 5.5+
 
 > Make sure that you are using at least PHP 7.1
 
 - `composer require railt/laravel-adapter`
-
-### Laravel 5.5+
-
 - `php artisan vendor:publish --tag=railt`
 
 ### Laravel 5.4 or less
@@ -33,8 +30,4 @@ The Laravel Framework ServiceProvider for Railt.
 ]
 ```
 
-- Publish configs and other resources: 
-
-```bash
-php artisan vendor:publish --tag=railt
-```
+- `php artisan vendor:publish --tag=railt`
