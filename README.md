@@ -11,7 +11,7 @@
 
 ## About
 
-Railt ServiceProvider for Laravel Framework
+The Laravel Framework ServiceProvider for Railt.
 
 ## Installation
 
