@@ -33,11 +33,11 @@ class ContainerBridge implements ContainerInterface
     }
 
     /**
-     * @param callable|\ReflectionFunctionAbstract|string $action
+     * @param callable $action
      * @param array $params
      * @return mixed
      */
-    public function call($action, array $params = [])
+    public function call(callable $action, array $params = [])
     {
         return $this->laravel->call($action, $params);
     }

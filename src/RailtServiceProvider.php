@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace Railt\Adapters\Laravel;
 
 use Illuminate\Contracts\Config\Repository;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Routing\Registrar;
 use Illuminate\Http\Request as LaravelRequest;
 use Illuminate\Support\ServiceProvider;
@@ -96,10 +97,9 @@ class RailtServiceProvider extends ServiceProvider
     private function registerEndpointDependency(): void
     {
         $this->app->singleton(Endpoint::class, function () {
-            return new Endpoint(
-                new ContainerBridge($this->app),
-                $this->app->make(LoggerInterface::class)
-            );
+            $logger = $this->app->make(LoggerInterface::class);
+
+            return new Endpoint(new ContainerBridge($this->app), $logger);
         });
     }
 
