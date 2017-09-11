@@ -26,6 +26,11 @@ use Railt\Http\RequestInterface;
 class RailtServiceProvider extends ServiceProvider
 {
     /**
+     * Dispatcher event names prefix
+     */
+    private const RAILT_EVENTS_PREFIX = 'railt:';
+
+    /**
      * Local config file path
      */
     private const CONFIG_PATH = __DIR__ . '/../resources/config/railt.php';
@@ -37,8 +42,9 @@ class RailtServiceProvider extends ServiceProvider
 
     /**
      * @return void
-     * @throws \Railt\Reflection\Exceptions\TypeConflictException
+     * @throws \Illuminate\Container\EntryNotFoundException
      * @throws \Railt\Parser\Exceptions\ParserException
+     * @throws \Railt\Reflection\Exceptions\TypeConflictException
      */
     public function register(): void
     {
@@ -91,6 +97,7 @@ class RailtServiceProvider extends ServiceProvider
 
     /**
      * @return void
+     * @throws \Illuminate\Container\EntryNotFoundException
      * @throws \Railt\Reflection\Exceptions\TypeConflictException
      * @throws \Railt\Parser\Exceptions\ParserException
      */
@@ -99,8 +106,38 @@ class RailtServiceProvider extends ServiceProvider
         $this->app->singleton(Endpoint::class, function () {
             $logger = $this->app->make(LoggerInterface::class);
 
-            return new Endpoint(new ContainerBridge($this->app), $logger);
+            $endpoint = new Endpoint(new ContainerBridge($this->app), $logger);
+
+            $this->registerEndpointDebugger($endpoint);
+            $this->registerEndpointEvents($endpoint);
+
+            return $endpoint;
         });
+    }
+
+    /**
+     * @param Endpoint $endpoint
+     */
+    private function registerEndpointEvents(Endpoint $endpoint): void
+    {
+        // Railt event dispatcher
+        $railt = $endpoint->getEvents();
+
+        // Laravel event dispatcher
+        $dispatcher = $this->app->make(Dispatcher::class);
+
+        $railt->listen('*', function (string $name, $data) use ($dispatcher) {
+            $dispatcher->dispatch(self::RAILT_EVENTS_PREFIX . $name, $data);
+        });
+    }
+
+    /**
+     * @param Endpoint $endpoint
+     * @throws \Illuminate\Container\EntryNotFoundException
+     */
+    private function registerEndpointDebugger(Endpoint $endpoint): void
+    {
+        $endpoint->debugMode(config('app.debug', false));
     }
 
     /**
