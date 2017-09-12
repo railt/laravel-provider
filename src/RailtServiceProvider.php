@@ -16,6 +16,7 @@ use Illuminate\Http\Request as LaravelRequest;
 use Illuminate\Support\ServiceProvider;
 use Psr\Log\LoggerInterface;
 use Railt\Endpoint;
+use Railt\Events\DispatcherInterface;
 use Railt\Http\Request;
 use Railt\Http\RequestInterface;
 
@@ -104,30 +105,26 @@ class RailtServiceProvider extends ServiceProvider
     private function registerEndpointDependency(): void
     {
         $this->app->singleton(Endpoint::class, function () {
+            $events = $this->app->make(Dispatcher::class);
             $logger = $this->app->make(LoggerInterface::class);
 
             $endpoint = new Endpoint(new ContainerBridge($this->app), $logger);
 
             $this->registerEndpointDebugger($endpoint);
-            $this->registerEndpointEvents($endpoint);
+            $this->registerEventsRedirection($events, $endpoint->getEvents());
 
             return $endpoint;
         });
     }
 
     /**
-     * @param Endpoint $endpoint
+     * @param Dispatcher $laravel
+     * @param DispatcherInterface $railt
      */
-    private function registerEndpointEvents(Endpoint $endpoint): void
+    private function registerEventsRedirection(Dispatcher $laravel, DispatcherInterface $railt): void
     {
-        // Railt event dispatcher
-        $railt = $endpoint->getEvents();
-
-        // Laravel event dispatcher
-        $dispatcher = $this->app->make(Dispatcher::class);
-
-        $railt->listen('*', function (string $name, $data) use ($dispatcher) {
-            $dispatcher->dispatch(self::RAILT_EVENTS_PREFIX . $name, $data);
+        $railt->listen('*', function (string $name, $data) use ($laravel) {
+            $laravel->dispatch(self::RAILT_EVENTS_PREFIX . $name, $data);
         });
     }
 
