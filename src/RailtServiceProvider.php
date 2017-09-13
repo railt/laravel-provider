@@ -7,7 +7,7 @@
  */
 declare(strict_types=1);
 
-namespace Railt\Adapters\Laravel;
+namespace Railt\LaravelProvider;
 
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Events\Dispatcher;
@@ -21,7 +21,7 @@ use Railt\Http\RequestInterface;
 
 /**
  * Class RailtServiceProvider
- * @package Railt\Adapters\Laravel
+ * @package Railt\LaravelProvider
  */
 class RailtServiceProvider extends ServiceProvider
 {

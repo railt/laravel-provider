@@ -7,7 +7,7 @@
  */
 declare(strict_types=1);
 
-namespace Railt\Adapters\Laravel\Controllers;
+namespace Railt\LaravelProvider\Controllers;
 
 use Illuminate\Contracts\View\View;
 use Railt\Endpoint;
@@ -16,11 +16,11 @@ use Railt\Reflection\Autoloader;
 use Railt\Routing\Router;
 use Illuminate\Http\Request;
 use Railt\Http\RequestInterface;
-use Railt\Adapters\Laravel\RailtConfiguration;
+use Railt\LaravelProvider\RailtConfiguration;
 
 /**
  * Class GraphQLController
- * @package Railt\Adapters\Laravel\Controllers
+ * @package Railt\LaravelProvider\Controllers
  */
 class GraphQLController
 {

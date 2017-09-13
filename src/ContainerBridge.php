@@ -7,14 +7,15 @@
  */
 declare(strict_types=1);
 
-namespace Railt\Adapters\Laravel;
+namespace Railt\LaravelProvider;
 
 use Railt\Container\ContainerInterface;
 use Illuminate\Contracts\Container\Container;
+use Railt\Container\RegistrableInterface;
 
 /**
  * Class ContainerBridge
- * @package Railt\Adapters\Laravel
+ * @package Railt\LaravelProvider
  */
 class ContainerBridge implements ContainerInterface
 {
@@ -58,5 +59,24 @@ class ContainerBridge implements ContainerInterface
     public function has($id): bool
     {
         return $this->laravel->bound($id);
+    }
+
+    public function factory(string $key, $value): RegistrableInterface
+    {
+        $this->laravel->bind($key, $value);
+
+        return $this;
+    }
+
+    /**
+     * @param string $key
+     * @param mixed $value
+     * @return RegistrableInterface
+     */
+    public function singleton(string $key, $value): RegistrableInterface
+    {
+        $this->laravel->singleton($key, $value);
+
+        return $this;
     }
 }

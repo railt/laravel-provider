@@ -7,7 +7,7 @@
  */
 declare(strict_types=1);
 
-namespace Railt\Adapters\Laravel;
+namespace Railt\LaravelProvider;
 
 use Railt\Http\RequestInterface;
 use Illuminate\Http\Request as Original;
@@ -17,7 +17,7 @@ use Railt\Http\Support\ConfigurableRequestInterface;
 
 /**
  * Class Request
- * @package Railt\Adapters\Laravel
+ * @package Railt\LaravelProvider
  */
 class Request implements RequestInterface, ConfigurableRequestInterface
 {

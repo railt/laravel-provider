@@ -1,4 +1,4 @@
-# Railt Laravel Adapter
+# Laravel Provider for Railt
 
 <p align="center">
     <a href="https://travis-ci.org/railt/laravel-adapter"><img src="https://travis-ci.org/railt/laravel-adapter.svg?branch=master&" alt="Travis CI" /></a>
@@ -11,7 +11,7 @@
 
 ## About
 
-The Laravel Framework ServiceProvider for Railt.
+The Laravel Framework Service Provider for Railt.
 
 ## Installation
 
@@ -19,17 +19,17 @@ The Laravel Framework ServiceProvider for Railt.
 
 > Make sure that you are using at least PHP 7.1
 
-- `composer require railt/laravel-adapter`
+- `composer require railt/laravel-provider`
 - `php artisan vendor:publish --tag=railt`
 
 ### Laravel 5.4 or less
 
-- `composer require railt/laravel-adapter`
+- `composer require railt/laravel-provider`
 - Add the service provider to your `app/config/app.php` file:
 ```php
 'providers' => [
     // ...
-    Railt\Adapters\Laravel\RailtServiceProvider::class,
+    Railt\LaravelProvider\RailtServiceProvider::class,
 ]
 ```
 

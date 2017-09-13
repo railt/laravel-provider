@@ -7,7 +7,7 @@
  */
 declare(strict_types=1);
 
-namespace Railt\Adapters\Laravel;
+namespace Railt\LaravelProvider;
 
 use Illuminate\Config\Repository;
 use Illuminate\Contracts\Routing\Registrar;
@@ -16,7 +16,7 @@ use Illuminate\Support\Str;
 
 /**
  * Class RailtConfiguration
- * @package Railt\Adapters\Laravel
+ * @package Railt\LaravelProvider
  */
 class RailtConfiguration extends Repository
 {

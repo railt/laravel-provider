@@ -7,7 +7,7 @@
  */
 declare(strict_types=1);
 
-namespace Railt\Tests\Http;
+namespace Railt\LaravelProvider\Tests;
 
 use Railt\Http\RequestInterface;
 use Railt\Adapters\Laravel\Request;
@@ -15,7 +15,7 @@ use Illuminate\Http\Request as LaravelNativeRequest;
 
 /**
  * Class LaravelRequestTestCase
- * @package Railt\Tests\Http
+ * @package Railt\LaravelProvider\Tests
  */
 class LaravelRequestTestCase extends AbstractHttpRequestTestCase
 {

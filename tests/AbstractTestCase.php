@@ -7,13 +7,13 @@
  */
 declare(strict_types=1);
 
-namespace Railt\Adapters\Laravel\Tests;
+namespace Railt\LaravelProvider\Tests;
 
 use PHPUnit\Framework\TestCase;
 
 /**
  * Class AbstractTestCase
- * @package Railt\Adapters\Laravel\Tests
+ * @package Railt\LaravelProvider\Tests
  */
 abstract class AbstractTestCase extends TestCase
 {
