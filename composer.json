@@ -1,7 +1,7 @@
 {
-    "name": "railt/laravel-adapter",
+    "name": "railt/laravel-provider",
     "type": "library",
-    "description": "The Laravel Framework ServiceProvider for Railt.",
+    "description": "The Laravel Framework Service Provider for Railt.",
     "license": "MIT",
     "keywords": [ "graphql", "railt", "laravel", "provider", "adapter", "bridge" ],
     "homepage": "http://railt.org",
@@ -37,9 +37,6 @@
         "psr-4": {
             "Railt\\Adapters\\Laravel\\Tests\\": "tests/"
         }
-    },
-    "suggest": {
-        "railt/webonyx-adapter": "Webonyx GraphQL driver support (~self.version)"
     },
     "extra": {
         "laravel": {
