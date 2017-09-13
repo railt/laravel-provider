@@ -10,7 +10,7 @@ declare(strict_types=1);
 namespace Railt\LaravelProvider\Tests;
 
 use Railt\Http\RequestInterface;
-use Railt\Adapters\Laravel\Request;
+use Railt\LaravelProvider\Request;
 use Illuminate\Http\Request as LaravelNativeRequest;
 
 /**
