@@ -17,7 +17,6 @@ use Illuminate\Support\ServiceProvider;
 use Psr\Log\LoggerInterface;
 use Railt\Endpoint;
 use Railt\Events\DispatcherInterface;
-use Railt\Http\Request;
 use Railt\Http\RequestInterface;
 
 /**
@@ -42,8 +41,8 @@ class RailtServiceProvider extends ServiceProvider
     private const VIEWS_PATH = __DIR__ . '/../resources/views';
 
     /**
-     * @return void
      * @throws \Illuminate\Container\EntryNotFoundException
+     * @throws \LogicException
      * @throws \Railt\Parser\Exceptions\ParserException
      * @throws \Railt\Reflection\Exceptions\TypeConflictException
      */
@@ -76,11 +75,14 @@ class RailtServiceProvider extends ServiceProvider
 
     /**
      * @return void
+     * @throws \LogicException
      */
     private function registerRequestDependency(): void
     {
         $this->app->singleton(RequestInterface::class, function () {
-            return Request::create($this->app->make(LaravelRequest::class));
+            $request = $this->app->make(LaravelRequest::class);
+
+            return new Request($request);
         });
     }
 
@@ -118,6 +120,15 @@ class RailtServiceProvider extends ServiceProvider
     }
 
     /**
+     * @param Endpoint $endpoint
+     * @throws \Illuminate\Container\EntryNotFoundException
+     */
+    private function registerEndpointDebugger(Endpoint $endpoint): void
+    {
+        $endpoint->debugMode(config('app.debug', false));
+    }
+
+    /**
      * @param Dispatcher $laravel
      * @param DispatcherInterface $railt
      */
@@ -126,15 +137,6 @@ class RailtServiceProvider extends ServiceProvider
         $railt->listen('*', function (string $name, $data) use ($laravel) {
             $laravel->dispatch(self::RAILT_EVENTS_PREFIX . $name, $data);
         });
-    }
-
-    /**
-     * @param Endpoint $endpoint
-     * @throws \Illuminate\Container\EntryNotFoundException
-     */
-    private function registerEndpointDebugger(Endpoint $endpoint): void
-    {
-        $endpoint->debugMode(config('app.debug', false));
     }
 
     /**
