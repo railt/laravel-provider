@@ -7,7 +7,7 @@
  */
 declare(strict_types=1);
 
-use Railt\Adapters\Laravel\Controllers\GraphQLController;
+use Railt\LaravelProvider\Controllers\GraphQLController;
 
 return [
     /**
