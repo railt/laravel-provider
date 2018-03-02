@@ -9,109 +9,66 @@ declare(strict_types=1);
 
 namespace Railt\LaravelProvider\Controllers;
 
-use Illuminate\Contracts\View\View;
-use Railt\Endpoint;
-use Railt\Parser\File;
-use Railt\Reflection\Autoloader;
-use Railt\Routing\Router;
-use Illuminate\Http\Request;
-use Railt\Http\RequestInterface;
-use Railt\LaravelProvider\RailtConfiguration;
+use Illuminate\Contracts\Container\Container;
+use Railt\Foundation\Application;
+use Railt\Io\File;
+use Railt\Io\Readable;
+use Railt\LaravelProvider\Config;
+use Railt\LaravelProvider\Request as GraphQLRequest;
+use Railt\SDL\Schema\CompilerInterface;
+use Illuminate\Http\Request as HttpRequest;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Class GraphQLController
- * @package Railt\LaravelProvider\Controllers
  */
 class GraphQLController
 {
     /**
-     * @var RailtConfiguration
+     * @var Application
+     */
+    private $app;
+
+    /**
+     * @var Config
      */
     private $config;
 
     /**
-     * @var string
-     */
-    private $action;
-
-    /**
      * GraphQLController constructor.
-     * @param RailtConfiguration $config
+     * @param Container $app
+     * @param CompilerInterface $compiler
+     * @param Config $config
      */
-    public function __construct(RailtConfiguration $config, Request $request)
+    public function __construct(Container $app, CompilerInterface $compiler, Config $config)
     {
+        $this->app = new Application($compiler, $app, $config->isDebug());
         $this->config = $config;
-
-        if ($request->route()) {
-            $this->action = $request->route()->getName();
-        }
     }
 
-
     /**
-     * @param Endpoint $endpoint
-     * @param RequestInterface $request
+     * @param GraphQLRequest $request
+     * @param HttpRequest $http
      * @return array
-     * @throws \LogicException
-     * @throws \Railt\Parser\Exceptions\UnrecognizedTokenException
-     * @throws \Railt\Parser\Exceptions\NotReadableException
-     * @throws \Railt\Reflection\Exceptions\TypeConflictException
-     * @throws \Railt\Reflection\Exceptions\UnrecognizedNodeException
+     * @throws \InvalidArgumentException
+     * @throws \Railt\SDL\Exceptions\TypeNotFoundException
+     * @throws \Railt\SDL\Exceptions\CompilerException
+     * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
      */
-    public function index(Endpoint $endpoint, RequestInterface $request): array
+    public function handle(GraphQLRequest $request, HttpRequest $http): array
     {
-        $this->registerAutoloader($endpoint->getAutoloader());
+        try {
+            $endpoint = $this->config->getEndpoint($http->route()->getName());
+        } catch (\OutOfRangeException $e) {
+            throw new NotFoundHttpException('Invalid GraphQL Schema');
+        }
 
-        $this->getRouter($endpoint->getRouter());
+        foreach ($endpoint->getExtensions() as $extension) {
+            $this->app->extend($extension);
+        }
 
-        $response = $endpoint->request($this->getSchemaFile(), $request);
+        $response = $this->app->request($endpoint->getSchema(), $request);
 
         return $response->toArray();
-    }
-
-    /**
-     * @param Router $router
-     */
-    private function getRouter(Router $router): void
-    {
-        $path = $this->config->getRouterPathname($this->action);
-
-        if (is_file($path)) {
-            require $path;
-        }
-    }
-
-    /**
-     * @return View
-     */
-    public function graphiql(): View
-    {
-        $route = $this->config->getRouteForAction($this->action);
-
-        return view('railt::graphiql', [
-            'route' => $route
-        ]);
-    }
-
-    /**
-     * @return File
-     */
-    private function getSchemaFile(): File
-    {
-        return File::path($this->config->getSchemaPathname($this->action));
-    }
-
-    /**
-     * @param Autoloader $autoloader
-     */
-    private function registerAutoloader(Autoloader $autoloader): void
-    {
-        foreach ($this->config->getAutoloadPaths($this->action) as $rule) {
-            if (is_callable($rule)) {
-                $autoloader->autoload($rule);
-            } elseif (is_string($rule) || is_array($rule)) {
-                $autoloader->dir($rule);
-            }
-        }
     }
 }

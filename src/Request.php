@@ -9,11 +9,11 @@ declare(strict_types=1);
 
 namespace Railt\LaravelProvider;
 
-use Railt\Http\RequestInterface;
 use Illuminate\Http\Request as Original;
-use Railt\Http\Support\InteractWithData;
+use Railt\Http\RequestInterface;
 use Railt\Http\Support\ConfigurableRequest;
 use Railt\Http\Support\ConfigurableRequestInterface;
+use Railt\Http\Support\InteractWithData;
 
 /**
  * Class Request
@@ -33,6 +33,6 @@ class Request implements RequestInterface, ConfigurableRequestInterface
     {
         $this->data = $request->isJson()
             ? $request->json()->all()
-            : array_merge($request->all(), $request->request->all());
+            : \array_merge($request->all(), $request->request->all());
     }
 }

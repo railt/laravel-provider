@@ -10,110 +10,66 @@ declare(strict_types=1);
 use Railt\LaravelProvider\Controllers\GraphQLController;
 
 return [
-    /**
-     *
-     */
-    'prefix'    => 'railt.',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Application Debug Mode
+    |--------------------------------------------------------------------------
+    |
+    | When your application is in debug mode, detailed error messages with
+    | stack traces will be shown on every error that occurs within your
+    | application. If disabled, a simple generic error page is shown.
+    |
+    */
+
+    'debug'     => env('RAILT_DEBUG', env('APP_DEBUG', false)),
 
     /**
-     * Default endpoint
-     */
-    'default'   => 'default',
-
-    /**
-     *
+     * GraphQL endpoints.
      */
     'endpoints' => [
         /**
-         * Configuration for application
+         * Route name => [ configs ]
          */
-        'default' => [
+        'api' => [
             /**
-             *
-             */
-            'enabled'    => true,
-
-            /**
-             * Root GraphQL schema file path
+             * Root GraphQL schema file path.
              */
             'schema'     => resource_path('graphql/schema.graphqls'),
 
             /**
-             * Autoload schema paths
-             *
-             *  PSR-0 Autoloading:
-             *      'path/to/directory/User.gql' for User type.
-             * <code>
-             *  'path/to/directory'
-             * </code>
-             *
-             *  Custom loader:
-             * <code>
-             *  function (string $type): ?string {
-             *      return ... // File path if found or null otherwise
-             *  }
-             * </code>
+             * Autoload schema paths.
              */
             'autoload'   => [
                 resource_path('graphql'),
             ],
 
             /**
-             * Router file path
+             * GraphQL controller.
              */
-            'router'     => base_path('routes/graphql.php'),
+            'uses'       => GraphQLController::class . '@handle',
 
             /**
-             *
+             * Routes prefix.
              */
-            'uri'        => '/api',
+            'prefix'     => 'railt.',
 
             /**
-             *
-             */
-            'uses'       => GraphQLController::class . '@index',
-
-            /**
-             *
+             * GraphQL middleware.
              */
             'middleware' => ['api'],
 
             /**
-             *
+             * Allowed methods.
              */
-            'methods' => ['GET', 'POST', 'PUT', 'PATCH']
-        ],
-    ],
-
-    /**
-     *
-     */
-    'graphiql' => [
-        [
-            /**
-             *
-             */
-            'enabled'  => env('APP_DEBUG', false),
+            'methods'    => ['GET', 'POST', 'PUT', 'PATCH'],
 
             /**
-             *
+             * A list of extensions.
              */
-            'endpoint' => 'default',
-
-            /**
-             *
-             */
-            'uri' => '/api/ui',
-
-            /**
-             *
-             */
-            'uses' => GraphQLController::class . '@graphiql',
-
-            /**
-             *
-             */
-            'middleware' => ['web'],
+            'extensions' => [
+                \Railt\Routing\RouterExtension::class,
+            ],
         ],
     ],
 ];

@@ -9,15 +9,17 @@ declare(strict_types=1);
 
 namespace Railt\LaravelProvider;
 
-use Illuminate\Contracts\Config\Repository;
-use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Config\Repository;
+use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Contracts\Routing\Registrar;
 use Illuminate\Http\Request as LaravelRequest;
 use Illuminate\Support\ServiceProvider;
-use Psr\Log\LoggerInterface;
-use Railt\Endpoint;
-use Railt\Events\DispatcherInterface;
+use Railt\Foundation\Application;
 use Railt\Http\RequestInterface;
+use Railt\SDL\Compiler;
+use Railt\SDL\Schema\CompilerInterface;
+use Railt\Storage\Persister;
+use Railt\Storage\Psr16Persister;
 
 /**
  * Class RailtServiceProvider
@@ -26,9 +28,9 @@ use Railt\Http\RequestInterface;
 class RailtServiceProvider extends ServiceProvider
 {
     /**
-     * Dispatcher event names prefix
+     * Local resources directory.
      */
-    private const RAILT_EVENTS_PREFIX = 'railt:';
+    private const RES_PATH = __DIR__ . '/../resources';
 
     /**
      * Local config file path
@@ -41,20 +43,13 @@ class RailtServiceProvider extends ServiceProvider
     private const VIEWS_PATH = __DIR__ . '/../resources/views';
 
     /**
-     * @throws \Illuminate\Container\EntryNotFoundException
-     * @throws \LogicException
-     * @throws \Railt\Parser\Exceptions\ParserException
-     * @throws \Railt\Reflection\Exceptions\TypeConflictException
+     * @return void
      */
     public function register(): void
     {
         $this->shareResources();
         $this->mergeConfigFrom(self::CONFIG_PATH, 'railt');
         $this->loadViewsFrom(self::VIEWS_PATH, 'railt');
-
-        $this->registerRequestDependency();
-        $this->registerConfigurationDependency();
-        $this->registerEndpointDependency();
     }
 
     /**
@@ -62,91 +57,92 @@ class RailtServiceProvider extends ServiceProvider
      */
     private function shareResources(): void
     {
-        $res = __DIR__ . '/../resources/';
+        $publishes = [
+            self::CONFIG_PATH                                  => \config_path('railt.php'),
+            self::RES_PATH . '/schema/schema.graphqls'         => \resource_path('graphql/schema.graphqls'),
+            self::RES_PATH . '/controllers/EchoController.php' => \app_path('GraphQL/Controllers/EchoController.php'),
+        ];
 
-        $this->publishes([
-            self::CONFIG_PATH                           => config_path('railt.php'),
-            $res . 'router/graphql.php'                 => base_path('routes/graphql.php'),
-            $res . 'schema/schema.graphqls'             => resource_path('graphql/schema.graphqls'),
-            $res . 'controllers/EchoController.php'     => app_path('GraphQL/Controllers/EchoController.php'),
-            $res . 'controllers/UpperCaseDecorator.php' => app_path('GraphQL/Decorators/UpperCaseDecorator.php'),
-        ], 'railt');
+        $this->publishes($publishes, 'railt');
+    }
+
+    /**
+     * Initialize PSR-16 Cache driver.
+     *
+     * @return void
+     */
+    private function registerCacheDriver(): void
+    {
+        $this->app->singleton(Persister::class, function (): Persister {
+            return new Psr16Persister($this->app->make(Cache::class));
+        });
+    }
+
+    /**
+     * Initialize compiler.
+     *
+     * @return void
+     * @throws \Railt\SDL\Exceptions\CompilerException
+     * @throws \OutOfBoundsException
+     */
+    private function registerCompiler(): void
+    {
+        $this->app->singleton(Compiler::class, function (): CompilerInterface {
+            return new Compiler($this->app->make(Persister::class));
+        });
+
+        $this->app->alias(Compiler::class, CompilerInterface::class);
     }
 
     /**
      * @return void
      * @throws \LogicException
      */
-    private function registerRequestDependency(): void
+    private function registerRequest(): void
     {
-        $this->app->singleton(RequestInterface::class, function () {
-            $request = $this->app->make(LaravelRequest::class);
-
-            return new Request($request);
+        $this->app->bind(RequestInterface::class, function (): RequestInterface {
+            return new Request($this->app->make(LaravelRequest::class));
         });
     }
 
     /**
-     * @return void
+     * @param Repository $repository
+     * @throws \InvalidArgumentException
+     * @throws \Railt\SDL\Exceptions\CompilerException
+     * @throws \OutOfBoundsException
+     * @throws \LogicException
      */
-    private function registerConfigurationDependency(): void
+    public function boot(Repository $repository): void
     {
-        $this->app->singleton(RailtConfiguration::class, function () {
-            $config = $this->app->make(Repository::class);
+        $config = new Config($repository->get('railt'));
 
-            return new RailtConfiguration($config->get('railt', []));
-        });
+        // Register a configuration
+        $this->app->instance(Config::class, $config);
+
+        // Cache
+        $this->registerCacheDriver();
+
+        // Compiler
+        $this->registerCompiler();
+
+        // Http
+        $this->registerRequest();
+
+        // Add endpoint
+        $this->createRoute($config, $this->app->make(Registrar::class));
     }
 
     /**
-     * @return void
-     * @throws \Illuminate\Container\EntryNotFoundException
-     * @throws \Railt\Reflection\Exceptions\TypeConflictException
-     * @throws \Railt\Parser\Exceptions\ParserException
+     * @param Config $config
+     * @param Registrar $registrar
+     * @throws \InvalidArgumentException
      */
-    private function registerEndpointDependency(): void
+    private function createRoute(Config $config, Registrar $registrar): void
     {
-        $this->app->singleton(Endpoint::class, function () {
-            $events = $this->app->make(Dispatcher::class);
-            $logger = $this->app->make(LoggerInterface::class);
-
-            $endpoint = new Endpoint(new ContainerBridge($this->app), $logger);
-
-            $this->registerEndpointDebugger($endpoint);
-            $this->registerEventsRedirection($events, $endpoint->getEvents());
-
-            return $endpoint;
-        });
-    }
-
-    /**
-     * @param Endpoint $endpoint
-     * @throws \Illuminate\Container\EntryNotFoundException
-     */
-    private function registerEndpointDebugger(Endpoint $endpoint): void
-    {
-        $endpoint->debugMode(config('app.debug', false));
-    }
-
-    /**
-     * @param Dispatcher $laravel
-     * @param DispatcherInterface $railt
-     */
-    private function registerEventsRedirection(Dispatcher $laravel, DispatcherInterface $railt): void
-    {
-        $railt->listen('*', function (string $name, $data) use ($laravel) {
-            $laravel->dispatch(self::RAILT_EVENTS_PREFIX . $name, $data);
-        });
-    }
-
-    /**
-     * @return void
-     */
-    public function boot(): void
-    {
-        /** @var RailtConfiguration $config */
-        $config = $this->app->make(RailtConfiguration::class);
-
-        $config->registerRoutes($this->app->make(Registrar::class));
+        foreach ($config->getEndpoints() as $endpoint) {
+            $registrar->match($endpoint->getMethods(), $endpoint->getUri(), $endpoint->getControllerAndAction())
+                ->name($endpoint->getName())
+                ->middleware($endpoint->getMiddleware());
+        }
     }
 }

@@ -4,19 +4,20 @@
 # --------------------------------------------
 
 schema {
-    query: Echo
+    query: Query
 }
 
-#
-# This is Echo type example.
-# Just dummy type for testing any features.
-#
-type Echo {
-    #
-    # Method "say" provides two arguments: "message" and "upper" and
-    # will return the message which contains in your required "message" argument.
-    #   - "message" response message.
-    #   - "upper" optional argument thransforms your message to upper case.
-    #
+"""
+This is Echo type example.
+Just dummy type for testing any features.
+"""
+type Query {
+    """
+    Method "say" provides two arguments: "message" and "upper" and
+    will return the message which contains in your required "message" argument.
+       - "message" response message.
+       - "upper" optional argument transforms your message to upper case.
+    """
     say(message: String!, upper: Boolean): String!
+        @route(action: "App\\GraphQL\\Controllers\\EchoController@say")
 }

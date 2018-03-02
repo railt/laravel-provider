@@ -9,11 +9,11 @@ declare(strict_types=1);
 
 namespace App\GraphQL\Controllers;
 
-use Railt\Adapters\InputInterface;
+use Illuminate\Support\Str;
+use Railt\Http\InputInterface;
 
 /**
  * Class EchoController
- * @package App\GraphQL\Controllers
  */
 class EchoController
 {
@@ -23,6 +23,8 @@ class EchoController
      */
     public function say(InputInterface $input): string
     {
-        return 'Your message is: ' . $input->get('message');
+        $result = 'Your message is: ' . $input->get('message');
+
+        return $input->get('upper') ? Str::upper($result) : $result;
     }
 }
