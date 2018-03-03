@@ -10,8 +10,10 @@ declare(strict_types=1);
 namespace Railt\LaravelProvider\Controllers;
 
 use Illuminate\Contracts\Container\Container;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request as HttpRequest;
 use Railt\Foundation\Application;
+use Railt\Http\ResponseInterface;
 use Railt\LaravelProvider\Config;
 use Railt\LaravelProvider\Request as GraphQLRequest;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -45,13 +47,13 @@ class GraphQLController
     /**
      * @param GraphQLRequest $request
      * @param HttpRequest $http
-     * @return array
+     * @return JsonResponse
      * @throws \InvalidArgumentException
      * @throws \Railt\SDL\Exceptions\TypeNotFoundException
      * @throws \Railt\SDL\Exceptions\CompilerException
      * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
      */
-    public function handle(GraphQLRequest $request, HttpRequest $http): array
+    public function handle(GraphQLRequest $request, HttpRequest $http): JsonResponse
     {
         try {
             $endpoint = $this->config->getEndpoint($http->route()->getName());
@@ -63,8 +65,34 @@ class GraphQLController
             $this->app->extend($extension);
         }
 
-        $response = $this->app->request($endpoint->getSchema(), $request);
+        return $this->toResponse($this->app->request($endpoint->getSchema(), $request));
+    }
 
-        return $response->toArray();
+    /**
+     * @param ResponseInterface $response
+     * @return JsonResponse
+     */
+    private function toResponse(ResponseInterface $response): JsonResponse
+    {
+        $json = new JsonResponse($response->toArray(), $this->getStatusCode($response));
+
+        if ($this->config->isDebug()) {
+            $options = $json->getEncodingOptions() | \JSON_PRETTY_PRINT;
+
+            $json->setEncodingOptions($options);
+        }
+
+        return $json;
+    }
+
+    /**
+     * @param ResponseInterface $response
+     * @return int
+     */
+    private function getStatusCode(ResponseInterface $response): int
+    {
+        return $response->isSuccessful()
+            ? JsonResponse::HTTP_OK
+            : JsonResponse::HTTP_INTERNAL_SERVER_ERROR;
     }
 }
