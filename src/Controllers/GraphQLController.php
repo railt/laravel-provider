@@ -10,13 +10,10 @@ declare(strict_types=1);
 namespace Railt\LaravelProvider\Controllers;
 
 use Illuminate\Contracts\Container\Container;
+use Illuminate\Http\Request as HttpRequest;
 use Railt\Foundation\Application;
-use Railt\Io\File;
-use Railt\Io\Readable;
 use Railt\LaravelProvider\Config;
 use Railt\LaravelProvider\Request as GraphQLRequest;
-use Railt\SDL\Schema\CompilerInterface;
-use Illuminate\Http\Request as HttpRequest;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -37,12 +34,11 @@ class GraphQLController
     /**
      * GraphQLController constructor.
      * @param Container $app
-     * @param CompilerInterface $compiler
      * @param Config $config
      */
-    public function __construct(Container $app, CompilerInterface $compiler, Config $config)
+    public function __construct(Container $app, Config $config)
     {
-        $this->app = new Application($compiler, $app, $config->isDebug());
+        $this->app    = new Application($app, $config->isDebug());
         $this->config = $config;
     }
 

@@ -14,10 +14,7 @@ use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Contracts\Routing\Registrar;
 use Illuminate\Http\Request as LaravelRequest;
 use Illuminate\Support\ServiceProvider;
-use Railt\Foundation\Application;
 use Railt\Http\RequestInterface;
-use Railt\SDL\Compiler;
-use Railt\SDL\Schema\CompilerInterface;
 use Railt\Storage\Persister;
 use Railt\Storage\Psr16Persister;
 
@@ -67,45 +64,6 @@ class RailtServiceProvider extends ServiceProvider
     }
 
     /**
-     * Initialize PSR-16 Cache driver.
-     *
-     * @return void
-     */
-    private function registerCacheDriver(): void
-    {
-        $this->app->singleton(Persister::class, function (): Persister {
-            return new Psr16Persister($this->app->make(Cache::class));
-        });
-    }
-
-    /**
-     * Initialize compiler.
-     *
-     * @return void
-     * @throws \Railt\SDL\Exceptions\CompilerException
-     * @throws \OutOfBoundsException
-     */
-    private function registerCompiler(): void
-    {
-        $this->app->singleton(Compiler::class, function (): CompilerInterface {
-            return new Compiler($this->app->make(Persister::class));
-        });
-
-        $this->app->alias(Compiler::class, CompilerInterface::class);
-    }
-
-    /**
-     * @return void
-     * @throws \LogicException
-     */
-    private function registerRequest(): void
-    {
-        $this->app->bind(RequestInterface::class, function (): RequestInterface {
-            return new Request($this->app->make(LaravelRequest::class));
-        });
-    }
-
-    /**
      * @param Repository $repository
      * @throws \InvalidArgumentException
      * @throws \Railt\SDL\Exceptions\CompilerException
@@ -122,14 +80,34 @@ class RailtServiceProvider extends ServiceProvider
         // Cache
         $this->registerCacheDriver();
 
-        // Compiler
-        $this->registerCompiler();
-
         // Http
         $this->registerRequest();
 
         // Add endpoint
         $this->createRoute($config, $this->app->make(Registrar::class));
+    }
+
+    /**
+     * Initialize PSR-16 Cache driver.
+     *
+     * @return void
+     */
+    private function registerCacheDriver(): void
+    {
+        $this->app->singleton(Persister::class, function (): Persister {
+            return new Psr16Persister($this->app->make(Cache::class));
+        });
+    }
+
+    /**
+     * @return void
+     * @throws \LogicException
+     */
+    private function registerRequest(): void
+    {
+        $this->app->bind(RequestInterface::class, function (): RequestInterface {
+            return new Request($this->app->make(LaravelRequest::class));
+        });
     }
 
     /**
