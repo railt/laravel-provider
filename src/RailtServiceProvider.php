@@ -15,8 +15,8 @@ use Illuminate\Contracts\Routing\Registrar;
 use Illuminate\Http\Request as LaravelRequest;
 use Illuminate\Support\ServiceProvider;
 use Railt\Http\RequestInterface;
-use Railt\Storage\Persister;
-use Railt\Storage\Psr16Persister;
+use Railt\Storage\Drivers\Psr16Storage;
+use Railt\Storage\Storage;
 
 /**
  * Class RailtServiceProvider
@@ -94,8 +94,8 @@ class RailtServiceProvider extends ServiceProvider
      */
     private function registerCacheDriver(): void
     {
-        $this->app->singleton(Persister::class, function (): Persister {
-            return new Psr16Persister($this->app->make(Cache::class));
+        $this->app->singleton(Storage::class, function (): Storage {
+            return new Psr16Storage($this->app->make(Cache::class));
         });
     }
 
