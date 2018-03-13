@@ -16,6 +16,7 @@ use Railt\Foundation\Application;
 use Railt\Http\ResponseInterface;
 use Railt\LaravelProvider\Config;
 use Railt\LaravelProvider\Request as GraphQLRequest;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -47,13 +48,14 @@ class GraphQLController
     /**
      * @param GraphQLRequest $request
      * @param HttpRequest $http
-     * @return JsonResponse
+     * @return Response
      * @throws \InvalidArgumentException
      * @throws \Railt\SDL\Exceptions\TypeNotFoundException
      * @throws \Railt\SDL\Exceptions\CompilerException
      * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
+     * @throws \Throwable
      */
-    public function handle(GraphQLRequest $request, HttpRequest $http): JsonResponse
+    public function handle(GraphQLRequest $request, HttpRequest $http): Response
     {
         try {
             $endpoint = $this->config->getEndpoint($http->route()->getName());
@@ -65,16 +67,49 @@ class GraphQLController
             $this->app->extend($extension);
         }
 
-        return $this->toResponse($this->app->request($endpoint->getSchema(), $request));
+        return $this->toResponse($this->app->request($endpoint->getSchema(), $request), $http);
+    }
+
+    /**
+     * @param ResponseInterface $response
+     * @param HttpRequest $http
+     * @return Response
+     * @throws \Throwable
+     */
+    private function toResponse(ResponseInterface $response, HttpRequest $http): Response
+    {
+        if ($this->isError($response) && ! $this->wantsJson($http)) {
+            throw \array_first($response->getExceptions());
+        }
+
+        return $this->toJsonResponse($response);
+    }
+
+    /**
+     * @param HttpRequest $request
+     * @return bool
+     */
+    private function wantsJson(HttpRequest $request): bool
+    {
+        return $request->isJson() || $request->wantsJson() || $request->isXmlHttpRequest();
+    }
+
+    /**
+     * @param ResponseInterface $response
+     * @return bool
+     */
+    private function isError(ResponseInterface $response): bool
+    {
+        return ! $response->isSuccessful();
     }
 
     /**
      * @param ResponseInterface $response
      * @return JsonResponse
      */
-    private function toResponse(ResponseInterface $response): JsonResponse
+    private function toJsonResponse(ResponseInterface $response): JsonResponse
     {
-        $json = new JsonResponse($response->toArray(), $this->getStatusCode($response));
+        $json = new JsonResponse($response->toArray(), $response->getStatusCode());
 
         if ($this->config->isDebug()) {
             $options = $json->getEncodingOptions() | \JSON_PRETTY_PRINT;
@@ -83,16 +118,5 @@ class GraphQLController
         }
 
         return $json;
-    }
-
-    /**
-     * @param ResponseInterface $response
-     * @return int
-     */
-    private function getStatusCode(ResponseInterface $response): int
-    {
-        return $response->isSuccessful()
-            ? JsonResponse::HTTP_OK
-            : JsonResponse::HTTP_INTERNAL_SERVER_ERROR;
     }
 }
