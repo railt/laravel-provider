@@ -68,7 +68,7 @@ return [
              * A list of extensions.
              */
             'extensions' => [
-                \Railt\Routing\RouterExtension::class,
+                // \Railt\Routing\RouterExtension::class,
             ],
         ],
     ],
