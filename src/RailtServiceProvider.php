@@ -78,7 +78,7 @@ class RailtServiceProvider extends ServiceProvider
         $this->app->instance(Config::class, $config);
 
         // Cache
-        $this->registerCacheDriver();
+        // $this->registerCacheDriver();
 
         // Http
         $this->registerRequest();
