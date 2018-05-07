@@ -13,9 +13,12 @@ use Illuminate\Contracts\Container\Container;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request as HttpRequest;
 use Railt\Foundation\Application;
+use Railt\Http\Request;
 use Railt\Http\ResponseInterface;
+use Railt\Io\File;
+use Railt\Io\Readable;
 use Railt\LaravelProvider\Config;
-use Railt\LaravelProvider\Request as GraphQLRequest;
+use Railt\SDL\Schema\CompilerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -24,6 +27,12 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 class GraphQLController
 {
+    private const FILE_EXTENSIONS = [
+        '.graphqls',
+        '.graphql',
+        '.gql'
+    ];
+
     /**
      * @var Application
      */
@@ -46,16 +55,41 @@ class GraphQLController
     }
 
     /**
-     * @param GraphQLRequest $request
+     * @param array $directories
+     * @throws \Psr\Container\ContainerExceptionInterface
+     * @throws \Psr\Container\NotFoundExceptionInterface
+     * @throws \Railt\Io\Exception\NotReadableException
+     */
+    private function bootAutoload(array $directories): void
+    {
+        /** @var CompilerInterface $compiler */
+        $compiler = $this->app->get(CompilerInterface::class);
+        $compiler->autoload(function (string $type) use ($directories): ?Readable {
+            foreach (self::FILE_EXTENSIONS as $ext) {
+                foreach ($directories as $dir) {
+                    $pathName = $dir . '/' . $type . $ext;
+                    if (\is_file($pathName)) {
+                        return File::fromPathname($pathName);
+                    }
+                }
+            }
+            return null;
+        });
+    }
+
+    /**
+     * @param Request $request
      * @param HttpRequest $http
      * @return Response
+     * @throws \Psr\Container\ContainerExceptionInterface
+     * @throws \Psr\Container\NotFoundExceptionInterface
      * @throws \InvalidArgumentException
      * @throws \Railt\SDL\Exceptions\TypeNotFoundException
      * @throws \Railt\SDL\Exceptions\CompilerException
      * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
      * @throws \Throwable
      */
-    public function handle(GraphQLRequest $request, HttpRequest $http): Response
+    public function handle(Request $request, HttpRequest $http): Response
     {
         try {
             $endpoint = $this->config->getEndpoint($http->route()->getName());
@@ -66,6 +100,8 @@ class GraphQLController
         foreach ($endpoint->getExtensions() as $extension) {
             $this->app->extend($extension);
         }
+
+        $this->bootAutoload($endpoint->getAutoload());
 
         return $this->toResponse($this->app->request($endpoint->getSchema(), $request), $http);
     }

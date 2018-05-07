@@ -14,6 +14,8 @@ use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Contracts\Routing\Registrar;
 use Illuminate\Http\Request as LaravelRequest;
 use Illuminate\Support\ServiceProvider;
+use Railt\Http\Provider\IlluminateProvider;
+use Railt\Http\Request;
 use Railt\Http\RequestInterface;
 use Railt\Storage\Drivers\Psr16Storage;
 use Railt\Storage\Storage;
@@ -106,8 +108,11 @@ class RailtServiceProvider extends ServiceProvider
     private function registerRequest(): void
     {
         $this->app->bind(RequestInterface::class, function (): RequestInterface {
-            return new Request($this->app->make(LaravelRequest::class));
+            $provider = new IlluminateProvider($this->app->make(LaravelRequest::class));
+            return new Request($provider);
         });
+
+        $this->app->alias(RequestInterface::class, Request::class);
     }
 
     /**

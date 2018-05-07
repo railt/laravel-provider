@@ -87,4 +87,12 @@ class Endpoint extends Repository
     {
         return (array)$this->get('extensions');
     }
+
+    /**
+     * @return array|string[]
+     */
+    public function getAutoload(): array
+    {
+        return (array)$this->get('autoload');
+    }
 }
