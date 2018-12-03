@@ -50,7 +50,7 @@ class GraphQLController
      */
     public function __construct(Container $app, Config $config)
     {
-        $this->app    = new Application($app, $config->isDebug());
+        $this->app    = new Application($config->isDebug(), $app);
         $this->config = $config;
     }
 
