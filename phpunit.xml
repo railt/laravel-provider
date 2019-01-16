@@ -7,19 +7,21 @@
          convertNoticesToExceptions="true"
          convertWarningsToExceptions="true"
          processIsolation="false"
-         stopOnFailure="false"
-         syntaxCheck="true">
+         stopOnFailure="false">
     <testsuites>
-        <testsuite name="Laravel Provider Test Suite">
+        <testsuite name="Test Suite">
             <directory suffix="TestCase.php">./tests</directory>
         </testsuite>
     </testsuites>
     <filter>
         <whitelist>
-            <directory suffix=".php">src/</directory>
+            <directory suffix=".php">src</directory>
         </whitelist>
     </filter>
     <php>
+        <ini name="error_reporting" value="-1" />
+        <ini name="memory_limit" value="-1" />
         <env name="APP_ENV" value="testing" />
+        <env name="RAILT_DEBUG" value="1" />
     </php>
 </phpunit>

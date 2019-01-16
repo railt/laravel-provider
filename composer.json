@@ -18,11 +18,11 @@
     ],
     "require": {
         "php": ">=7.1",
-        "railt/railt": "self.version",
-        "illuminate/http": "~5.1",
-        "illuminate/support": "~5.1",
-        "illuminate/config": "~5.1",
-        "illuminate/container": "~5.1"
+        "railt/railt": "1.4.*|dev-master",
+        "illuminate/http": "~5.5",
+        "illuminate/support": "~5.5",
+        "illuminate/config": "~5.5",
+        "illuminate/container": "~5.5"
     },
     "autoload": {
         "psr-4": {

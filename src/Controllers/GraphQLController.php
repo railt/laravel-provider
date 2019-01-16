@@ -9,150 +9,52 @@ declare(strict_types=1);
 
 namespace Railt\LaravelProvider\Controllers;
 
-use Illuminate\Contracts\Container\Container;
+use Illuminate\Contracts\Config\Repository;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request as HttpRequest;
-use Railt\Foundation\Application;
-use Railt\Http\Request;
+use Illuminate\Http\Response;
+use Railt\Foundation\ApplicationInterface;
+use Railt\Http\Provider\ProviderInterface;
 use Railt\Http\ResponseInterface;
 use Railt\Io\File;
-use Railt\Io\Readable;
-use Railt\LaravelProvider\Config;
-use Railt\SDL\Schema\CompilerInterface;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Class GraphQLController
  */
 class GraphQLController
 {
-    private const FILE_EXTENSIONS = [
-        '.graphqls',
-        '.graphql',
-        '.gql'
-    ];
-
     /**
-     * @var Application
+     * @var ApplicationInterface
      */
     private $app;
 
     /**
-     * @var Config
+     * @var array
      */
     private $config;
 
     /**
      * GraphQLController constructor.
-     * @param Container $app
-     * @param Config $config
+     * @param ApplicationInterface $app
      */
-    public function __construct(Container $app, Config $config)
+    public function __construct(ApplicationInterface $app, Repository $config)
     {
-        $this->app    = new Application($config->isDebug(), $app);
-        $this->config = $config;
+        $this->app = $app;
+        $this->config = $config->get('railt');
     }
 
     /**
-     * @param array $directories
-     * @throws \Psr\Container\ContainerExceptionInterface
-     * @throws \Psr\Container\NotFoundExceptionInterface
+     * @param ProviderInterface $provider
      * @throws \Railt\Io\Exception\NotReadableException
      */
-    private function bootAutoload(array $directories): void
+    public function handle(ProviderInterface $provider)
     {
-        /** @var CompilerInterface $compiler */
-        $compiler = $this->app->get(CompilerInterface::class);
-        $compiler->autoload(function (string $type) use ($directories): ?Readable {
-            foreach (self::FILE_EXTENSIONS as $ext) {
-                foreach ($directories as $dir) {
-                    $pathName = $dir . '/' . $type . $ext;
-                    if (\is_file($pathName)) {
-                        return File::fromPathname($pathName);
-                    }
-                }
-            }
-            return null;
-        });
-    }
+        $schema = File::fromPathname($this->config['schema']);
 
-    /**
-     * @param Request $request
-     * @param HttpRequest $http
-     * @return Response
-     * @throws \Psr\Container\ContainerExceptionInterface
-     * @throws \Psr\Container\NotFoundExceptionInterface
-     * @throws \InvalidArgumentException
-     * @throws \Railt\SDL\Exceptions\TypeNotFoundException
-     * @throws \Railt\SDL\Exceptions\CompilerException
-     * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
-     * @throws \Throwable
-     */
-    public function handle(Request $request, HttpRequest $http): Response
-    {
-        try {
-            $endpoint = $this->config->getEndpoint($http->route()->getName());
-        } catch (\OutOfRangeException $e) {
-            throw new NotFoundHttpException('Invalid GraphQL Schema');
-        }
+        /** @var ResponseInterface $response */
+        $response = $this->app->connect($schema)->requests($provider);
 
-        foreach ($endpoint->getExtensions() as $extension) {
-            $this->app->extend($extension);
-        }
+        $code = $response->hasErrors() ? Response::HTTP_INTERNAL_SERVER_ERROR : Response::HTTP_OK;
 
-        $this->bootAutoload($endpoint->getAutoload());
-
-        return $this->toResponse($this->app->request($endpoint->getSchema(), $request), $http);
-    }
-
-    /**
-     * @param ResponseInterface $response
-     * @param HttpRequest $http
-     * @return Response
-     * @throws \Throwable
-     */
-    private function toResponse(ResponseInterface $response, HttpRequest $http): Response
-    {
-        if ($this->isError($response) && ! $this->wantsJson($http)) {
-            throw \array_first($response->getExceptions());
-        }
-
-        return $this->toJsonResponse($response);
-    }
-
-    /**
-     * @param HttpRequest $request
-     * @return bool
-     */
-    private function wantsJson(HttpRequest $request): bool
-    {
-        return $request->isJson() || $request->wantsJson() || $request->isXmlHttpRequest();
-    }
-
-    /**
-     * @param ResponseInterface $response
-     * @return bool
-     */
-    private function isError(ResponseInterface $response): bool
-    {
-        return ! $response->isSuccessful();
-    }
-
-    /**
-     * @param ResponseInterface $response
-     * @return JsonResponse
-     */
-    private function toJsonResponse(ResponseInterface $response): JsonResponse
-    {
-        $json = new JsonResponse($response->toArray(), $response->getStatusCode());
-
-        if ($this->config->isDebug()) {
-            $options = $json->getEncodingOptions() | \JSON_PRETTY_PRINT;
-
-            $json->setEncodingOptions($options);
-        }
-
-        return $json;
+        return new JsonResponse($response->toArray(), $code, [], $response->isDebug() ? \JSON_PRETTY_PRINT : 0);
     }
 }

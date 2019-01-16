@@ -15,22 +15,25 @@ The Laravel Framework Service Provider for Railt.
 
 ## Installation
 
-### Laravel 5.5+
-
-> Make sure that you are using at least PHP 7.1
-
 - `composer require railt/laravel-provider`
-- `php artisan vendor:publish --tag=railt`
-
-### Laravel 5.4 or less
-
-- `composer require railt/laravel-provider`
-- Add the service provider to your `app/config/app.php` file:
-```php
-'providers' => [
-    // ...
-    Railt\LaravelProvider\RailtServiceProvider::class,
-]
+- Add to `composer.json` the `"Railt\\Discovery\\Manifest::discover"` composer script:
+```json5
+{
+    "scripts": {
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi",
+            
+            // HERE
+            "Railt\\Discovery\\Manifest::discover"
+        ]
+    }
+}
 ```
-
+- `composer dump-autoload`
 - `php artisan vendor:publish --tag=railt`
+
+## Usage
+
+Just use the description in the package configuration 
+`config/railt.php` file.

@@ -21,55 +21,35 @@ return [
     | application. If disabled, a simple generic error page is shown.
     |
     */
-
     'debug'     => env('RAILT_DEBUG', env('APP_DEBUG', false)),
 
     /**
-     * GraphQL endpoints.
+     * Route path
      */
-    'endpoints' => [
-        /**
-         * Route name => [ configs ]
-         */
-        'api' => [
-            /**
-             * Root GraphQL schema file path.
-             */
-            'schema'     => resource_path('graphql/schema.graphqls'),
+    'uri' => 'graphql',
 
-            /**
-             * Autoload schema paths.
-             */
-            'autoload'   => [
-                resource_path('graphql'),
-            ],
+    /**
+     * Root GraphQL schema file path.
+     */
+    'schema'     => resource_path('graphql/schema.graphqls'),
 
-            /**
-             * GraphQL controller.
-             */
-            'uses'       => GraphQLController::class . '@handle',
+    /**
+     * GraphQL controller.
+     */
+    'uses'       => GraphQLController::class . '@handle',
 
-            /**
-             * Routes prefix.
-             */
-            'prefix'     => 'railt.',
+    /**
+     * Routes prefix.
+     */
+    'prefix'     => 'railt.',
 
-            /**
-             * GraphQL middleware.
-             */
-            'middleware' => ['api'],
+    /**
+     * GraphQL middleware.
+     */
+    'middleware' => ['api'],
 
-            /**
-             * Allowed methods.
-             */
-            'methods'    => ['GET', 'POST', 'PUT', 'PATCH'],
-
-            /**
-             * A list of extensions.
-             */
-            'extensions' => [
-                // \Railt\Routing\RouterExtension::class,
-            ],
-        ],
-    ],
+    /**
+     * Allowed methods.
+     */
+    'methods'    => ['GET', 'POST', 'PUT', 'PATCH'],
 ];

@@ -13,7 +13,6 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Class AbstractTestCase
- * @package Railt\LaravelProvider\Tests
  */
 abstract class AbstractTestCase extends TestCase
 {

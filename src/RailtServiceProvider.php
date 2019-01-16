@@ -14,7 +14,14 @@ use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Contracts\Routing\Registrar;
 use Illuminate\Http\Request as LaravelRequest;
 use Illuminate\Support\ServiceProvider;
+use Railt\Discovery\Discovery;
+use Railt\Foundation\Application;
+use Railt\Foundation\ApplicationInterface;
+use Railt\Foundation\Config\Composer;
+use Railt\Http\Factory;
+use Railt\Http\Provider\DataProvider;
 use Railt\Http\Provider\IlluminateProvider;
+use Railt\Http\Provider\ProviderInterface;
 use Railt\Http\Request;
 use Railt\Http\RequestInterface;
 use Railt\Storage\Drivers\Psr16Storage;
@@ -74,19 +81,27 @@ class RailtServiceProvider extends ServiceProvider
      */
     public function boot(Repository $repository): void
     {
-        $config = new Config($repository->get('railt'));
+        $config = $repository->get('railt');
 
-        // Register a configuration
-        $this->app->instance(Config::class, $config);
-
-        // Cache
-        // $this->registerCacheDriver();
-
-        // Http
+        $this->registerCacheDriver();
         $this->registerRequest();
+        $this->registerApplication($config['debug'] ?? false);
 
         // Add endpoint
         $this->createRoute($config, $this->app->make(Registrar::class));
+    }
+
+    /**
+     * @param bool $debug
+     */
+    private function registerApplication(bool $debug): void
+    {
+        $this->app->bind(ApplicationInterface::class, function() use ($debug): ApplicationInterface {
+            $app = new Application($debug, $this->app);
+            $app->configure(new Composer(Discovery::auto()));
+
+            return $app;
+        });
     }
 
     /**
@@ -107,25 +122,36 @@ class RailtServiceProvider extends ServiceProvider
      */
     private function registerRequest(): void
     {
-        $this->app->bind(RequestInterface::class, function (): RequestInterface {
-            $provider = new IlluminateProvider($this->app->make(LaravelRequest::class));
-            return new Request($provider);
+        $this->app->bind(ProviderInterface::class, function(): ProviderInterface {
+            $laravel = $this->app->make(LaravelRequest::class);
+
+            $provider = new DataProvider($laravel->query->all(), $laravel->request->all());
+            $provider->withContentType($laravel->getContentType());
+            $provider->withBody($laravel->getContent());
+
+            return $provider;
         });
 
         $this->app->alias(RequestInterface::class, Request::class);
     }
 
     /**
-     * @param Config $config
-     * @param Registrar $registrar
+     * @param Registrar $config
      * @throws \InvalidArgumentException
      */
-    private function createRoute(Config $config, Registrar $registrar): void
+    private function createRoute(array $config, Registrar $registrar): void
     {
-        foreach ($config->getEndpoints() as $endpoint) {
-            $registrar->match($endpoint->getMethods(), $endpoint->getUri(), $endpoint->getControllerAndAction())
-                ->name($endpoint->getName())
-                ->middleware($endpoint->getMiddleware());
-        }
+        // GET, POST, PATCH, etc
+        $method = $config['methods'] ?? ['POST'];
+
+        // Endpoint URI
+        $uri = $config['uri'] ?? '/graphql';
+
+        // Controller and Action
+        $uses = $config['uses'] ?? GraphQLController::class . '@handle';
+
+        $route = $registrar->match($method, $uri, $uses)
+            ->name(($config['prefix'] ?? '') . 'graphql')
+            ->middleware($config['middleware'] ?? []);
     }
 }
