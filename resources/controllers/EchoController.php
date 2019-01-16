@@ -7,7 +7,7 @@
  */
 declare(strict_types=1);
 
-namespace App\GraphQL\Controllers;
+namespace App\Http\Controllers\GraphQL;
 
 use Illuminate\Support\Str;
 use Railt\Http\InputInterface;
@@ -18,13 +18,20 @@ use Railt\Http\InputInterface;
 class EchoController
 {
     /**
+     * @param string $message
+     * @param bool $upper
      * @param InputInterface $input
      * @return string
      */
-    public function say(InputInterface $input): string
+    public function say(string $message, bool $upper = false, InputInterface $input): string
     {
-        $result = 'Your message is: ' . $input->get('message');
+        $result = [
+            'Your message is "' . ($upper ? Str::upper($message) : $message) . '"',
+            'Path is "' . $input->getPath() . '"',
+            'Alias is "' . $input->getAlias() . '"',
+            'Query is "' . $input->request()->getQuery() . '"'
+        ];
 
-        return $input->get('upper') ? Str::upper($result) : $result;
+        return \implode('; ', $result);
     }
 }

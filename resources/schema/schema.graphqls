@@ -3,6 +3,8 @@
 #   This an Example Schema file.
 # --------------------------------------------
 
+@use(class: "App\\Http\\Controllers\\GraphQL\\EchoController")
+
 schema {
     query: Query
 }
@@ -19,5 +21,5 @@ type Query {
        - "upper" optional argument transforms your message to upper case.
     """
     say(message: String!, upper: Boolean): String!
-        @route(action: "App\\GraphQL\\Controllers\\EchoController@say")
+        @route(action: "EchoController@say")
 }

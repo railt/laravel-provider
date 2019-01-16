@@ -64,9 +64,12 @@ class RailtServiceProvider extends ServiceProvider
     private function shareResources(): void
     {
         $publishes = [
-            self::CONFIG_PATH                                  => \config_path('railt.php'),
-            self::RES_PATH . '/schema/schema.graphqls'         => \resource_path('graphql/schema.graphqls'),
-            self::RES_PATH . '/controllers/EchoController.php' => \app_path('GraphQL/Controllers/EchoController.php'),
+            self::CONFIG_PATH                                  =>
+                \config_path('railt.php'),
+            self::RES_PATH . '/schema/schema.graphqls'         =>
+                \resource_path('graphql/schema.graphqls'),
+            self::RES_PATH . '/controllers/EchoController.php' =>
+                \app_path('Http/Controllers/GraphQL/EchoController.php'),
         ];
 
         $this->publishes($publishes, 'railt');
