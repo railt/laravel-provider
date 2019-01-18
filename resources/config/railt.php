@@ -27,8 +27,10 @@ return [
      | GraphQL API Endpoints
      |--------------------------------------------------------------------------
      |
+     | List of access points to the GraphQL API.
      |
      */
+
     'endpoints' => [
         'default' => [
             'route'      => 'graphql',
@@ -55,10 +57,10 @@ return [
      |      in railt.php. You can override the value by setting enable to true
      |      or false instead of null.
      |
-     | - "route" - Sometimes you want to set route to be used by Playground to
+     | - "route" - Sometimes you want to set route to be used by playground to
      |      load its resources from.
      |
-     | - "middleware" - Any middleware for the Playground route.
+     | - "middleware" - Any middleware for the playground route.
      |
      */
     'playground' => [
