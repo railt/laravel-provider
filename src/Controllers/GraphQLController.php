@@ -1,6 +1,6 @@
 <?php
 /**
- * This file is part of Railt Laravel Adapter package.
+ * This file is part of Railt package.
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -9,13 +9,16 @@ declare(strict_types=1);
 
 namespace Railt\LaravelProvider\Controllers;
 
-use Illuminate\Contracts\Config\Repository;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Response;
+use Illuminate\Http\Request;
 use Railt\Foundation\ApplicationInterface;
-use Railt\Http\Provider\ProviderInterface;
+use Railt\Http\Exception\GraphQLException;
+use Railt\Http\Response;
 use Railt\Http\ResponseInterface;
-use Railt\Io\File;
+use Railt\LaravelProvider\Config;
+use Railt\LaravelProvider\Config\Endpoint;
+use Railt\LaravelProvider\Http\LaravelProvider;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Class GraphQLController
@@ -28,33 +31,92 @@ class GraphQLController
     private $app;
 
     /**
-     * @var array
+     * @var Config
      */
     private $config;
 
     /**
      * GraphQLController constructor.
      * @param ApplicationInterface $app
+     * @param Config $config
      */
-    public function __construct(ApplicationInterface $app, Repository $config)
+    public function __construct(ApplicationInterface $app, Config $config)
     {
         $this->app = $app;
-        $this->config = $config->get('railt');
+        $this->config = $config;
     }
 
     /**
-     * @param ProviderInterface $provider
-     * @throws \Railt\Io\Exception\NotReadableException
+     * @param Request $request
+     * @return JsonResponse
      */
-    public function handle(ProviderInterface $provider)
+    public function graphqlAction(Request $request): JsonResponse
     {
-        $schema = File::fromPathname($this->config['schema']);
+        $response = $this->execute($request);
 
-        /** @var ResponseInterface $response */
-        $response = $this->app->connect($schema)->requests($provider);
+        $flags = $response->isDebug() ? \JSON_PRETTY_PRINT : 0;
 
-        $code = $response->hasErrors() ? Response::HTTP_INTERNAL_SERVER_ERROR : Response::HTTP_OK;
+        return new JsonResponse($response->toArray(), $response->getStatusCode(), [], $flags);
+    }
 
-        return new JsonResponse($response->toArray(), $code, [], $response->isDebug() ? \JSON_PRETTY_PRINT : 0);
+    /**
+     * @param Request $request
+     * @return ResponseInterface
+     */
+    private function execute(Request $request): ResponseInterface
+    {
+        try {
+            $endpoint = $this->getEndpointByRoute($request);
+
+            $connection = $this->app->connect($endpoint->getSchema());
+
+            $response = $connection->requests(new LaravelProvider($request));
+
+            return $response;
+        } catch (\Throwable $e) {
+            $exception = new GraphQLException($e->getMessage(), $e->getCode(), $e);
+
+            if ($this->app->isDebug()) {
+                $exception->publish();
+            }
+
+            $response = new Response([]);
+            $response->debug($this->app->isDebug());
+            $response->withException($exception);
+
+            return $response;
+        }
+    }
+
+    /**
+     * @param Request $request
+     * @return Endpoint
+     * @throws NotFoundHttpException
+     */
+    private function getEndpointByRoute(Request $request): Endpoint
+    {
+        $route = $request->route()->getName();
+        $endpoint = $this->config->findByRouteName($route);
+
+        if ($endpoint === null) {
+            $error = \sprintf('GraphQL endpoint for route "%s" was not registered', $route);
+            throw new NotFoundHttpException($error);
+        }
+
+        return $endpoint;
+    }
+
+    /**
+     * @param Request $request
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     */
+    public function playgroundAction(Request $request)
+    {
+        return \view('railt::playground', [
+            'endpoints' => $this->config->getEndpoints(),
+            'route'     => $request->route(),
+            'graphiql'  => $this->config->getPlayground(),
+            'debug'     => $this->config->isDebug(),
+        ]);
     }
 }

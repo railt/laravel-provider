@@ -7,49 +7,63 @@
  */
 declare(strict_types=1);
 
-use Railt\LaravelProvider\Controllers\GraphQLController;
-
 return [
 
     /*
-    |--------------------------------------------------------------------------
-    | Application Debug Mode
-    |--------------------------------------------------------------------------
-    |
-    | When your application is in debug mode, detailed error messages with
-    | stack traces will be shown on every error that occurs within your
-    | application. If disabled, a simple generic error page is shown.
-    |
-    */
+     |--------------------------------------------------------------------------
+     | Railt Debug Mode
+     |--------------------------------------------------------------------------
+     |
+     | When your application is in debug mode, detailed error messages with
+     | stack traces will be shown on every error that occurs within your
+     | application. If disabled, a simple generic response will shown.
+     |
+     */
+
     'debug'     => env('RAILT_DEBUG', env('APP_DEBUG', false)),
 
-    /**
-     * Route path
+    /*
+     |--------------------------------------------------------------------------
+     | GraphQL API Endpoints
+     |--------------------------------------------------------------------------
+     |
+     |
      */
-    'uri' => 'graphql',
+    'endpoints' => [
+        'default' => [
+            'route'      => 'graphql',
+            'methods'    => ['GET', 'POST'],
+            'schema'     => resource_path('graphql/schema.graphqls'),
+            'middleware' => ['api'],
+        ],
 
-    /**
-     * Root GraphQL schema file path.
-     */
-    'schema'     => resource_path('graphql/schema.graphqls'),
+        // 'admin' => [
+        //     'route'      => 'graphql/admin',
+        //     'schema'     => resource_path('graphql/admin.graphqls'),
+        //     'middleware' => ['api'],
+        //     'name'       => 'admin.railt',
+        //     'methods'    => ['GET', 'POST', 'PUT', 'PATCH'],
+        // ]
+    ],
 
-    /**
-     * GraphQL controller.
+    /*
+     |--------------------------------------------------------------------------
+     | Playground UI Settings
+     |--------------------------------------------------------------------------
+     |
+     | - "enabled" - Playground is enabled by default, when debug is set to true
+     |      in railt.php. You can override the value by setting enable to true
+     |      or false instead of null.
+     |
+     | - "route" - Sometimes you want to set route to be used by Playground to
+     |      load its resources from.
+     |
+     | - "middleware" - Any middleware for the Playground route.
+     |
      */
-    'uses'       => GraphQLController::class . '@handle',
-
-    /**
-     * Routes prefix.
-     */
-    'prefix'     => 'railt.',
-
-    /**
-     * GraphQL middleware.
-     */
-    'middleware' => ['api'],
-
-    /**
-     * Allowed methods.
-     */
-    'methods'    => ['GET', 'POST', 'PUT', 'PATCH'],
+    'playground' => [
+        'enabled'    => env('RAILT_PLAYGROUND_ENABLED', null),
+        'route'      => 'graphql/playground',
+        'middleware' => ['web'],
+    ],
 ];

@@ -1,6 +1,6 @@
 <?php
 /**
- * This file is part of Railt Laravel Adapter package.
+ * This file is part of Railt package.
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -23,7 +23,7 @@ class EchoController
      * @param InputInterface $input
      * @return string
      */
-    public function say(string $message, bool $upper = false, InputInterface $input): string
+    public function say(string $message, ?bool $upper, InputInterface $input): string
     {
         $result = [
             'Your message is "' . ($upper ? Str::upper($message) : $message) . '"',
