@@ -15,8 +15,6 @@ use Illuminate\Contracts\Routing\Registrar;
 use Illuminate\Support\ServiceProvider;
 use Railt\Foundation\Application;
 use Railt\Foundation\ApplicationInterface;
-use Railt\Http\Provider\ProviderInterface;
-use Railt\LaravelProvider\Http\LaravelProvider;
 use Railt\Storage\Drivers\Psr16Storage;
 use Railt\Storage\Storage;
 
@@ -56,15 +54,19 @@ class RailtServiceProvider extends ServiceProvider
      */
     private function shareResources(): void
     {
+        $views = self::VIEWS_PATH;
         $configs = self::CONFIG_PATH;
         $resources = self::RES_PATH . '/schema/schema.graphqls';
         $controllers = self::RES_PATH . '/controllers/EchoController.php';
 
         $this->publishes([
+            $views       => \resource_path('views/vendor/railt'),
             $configs     => \config_path('railt.php'),
             $resources   => \resource_path('graphql/schema.graphqls'),
             $controllers => \app_path('Http/Controllers/GraphQL/EchoController.php'),
         ], 'railt');
+
+        $this->loadViewsFrom(self::VIEWS_PATH, 'railt');
     }
 
     /**
