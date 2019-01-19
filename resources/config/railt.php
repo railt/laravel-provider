@@ -20,7 +20,7 @@ return [
      |
      */
 
-    'debug'     => env('RAILT_DEBUG', env('APP_DEBUG', false)),
+    'debug' => env('RAILT_DEBUG', env('APP_DEBUG', false)),
 
     /*
      |--------------------------------------------------------------------------
@@ -31,7 +31,7 @@ return [
      |
      */
 
-    'endpoints' => [
+    'endpoints'  => [
         'default' => [
             'route'      => 'graphql',
             'methods'    => ['GET', 'POST'],
@@ -67,5 +67,15 @@ return [
         'enabled'    => env('RAILT_PLAYGROUND_ENABLED', null),
         'route'      => 'graphql/playground',
         'middleware' => ['web'],
+        'settings'   => [
+            'general.betaUpdates'         => false,
+            'editor.cursorShape'          => 'line',
+            'editor.fontSize'             => 16,
+            'editor.fontFamily'           => "'Source Code Pro', 'Consolas', 'Inconsolata', 'Droid Sans Mono', 'Monaco', monospace",
+            'editor.theme'                => 'light',
+            'editor.reuseHeaders'         => true,
+            'request.credentials'         => 'omit',
+            'tracing.hideTracingResponse' => false,
+        ]
     ],
 ];

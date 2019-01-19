@@ -489,17 +489,19 @@
                 }
             </style>
         </defs>
-        <path class="cls-1" d="M118.263,197.817h22.145l-39.989-66.864c21.069-6.235,32.249-18.49,32.249-39.559,0-27.3-18.92-41.494-55.469-41.494L40,50V198l16-1V134l28.144,0.178ZM56,120V65l20.984-.481c25.155,0,35.9,8.17,35.9,26.875,0,20.424-12.254,28.379-33.539,28.379Zm212.978,77.817h19.779L241.028,49.9H217.379L169.434,197.817h18.92l11.61-37.839h57.619Zm-64.5-53.1,24.294-79.334,24.08,79.334H204.479ZM351,28l-17,6V223l17-6V28Zm85,21-18,2V198l75.8-.183,4.15-18.34L434,182Zm178.266,0.9L511,50V65h42V199l16-2,1-132h42Z"/>
-        <path class="cls-1" d="M334,24l17-6V0L334,6V24Z"/>
+        <path class="cls-1" d="M118.263,197.817h22.145l-39.989-66.864c21.069-6.235,32.249-18.49,32.249-39.559,0-27.3-18.92-41.494-55.469-41.494L40,50V198l16-1V134l28.144,0.178ZM56,120V65l20.984-.481c25.155,0,35.9,8.17,35.9,26.875,0,20.424-12.254,28.379-33.539,28.379Zm212.978,77.817h19.779L241.028,49.9H217.379L169.434,197.817h18.92l11.61-37.839h57.619Zm-64.5-53.1,24.294-79.334,24.08,79.334H204.479ZM351,28l-17,6V223l17-6V28Zm85,21-18,2V198l75.8-.183,4.15-18.34L434,182Zm178.266,0.9L511,50V65h42V199l16-2,1-132h42Z"></path>
+        <path class="cls-1" d="M334,24l17-6V0L334,6V24Z"></path>
     </svg>
     <div class="text">
         <span class="dGfHfc">GraphQL Playground</span>
     </div>
 </div>
-
-<div id="root" />
+<div id="root"></div>
 <script type="text/javascript">
-    <?php /** @var Railt\LaravelProvider\Config\Endpoint[] $endpoints */ ?>
+    @php
+        /** @var Railt\LaravelProvider\Config\Endpoint $endpoint */
+        $endpoint = \array_first($endpoints);
+    @endphp
 
     window.addEventListener('load', function (event) {
         setTimeout(function() {
@@ -509,18 +511,13 @@
             const root = document.getElementById('root');
             root.classList.add('playgroundIn');
 
-            @php($endpoint = \array_first($endpoints))
 
             GraphQLPlayground.init(root, {
                 @if($endpoint)
                 name: '{{ \ucwords($endpoint->getName()) }}',
                 endpoint: '{{ \route($endpoint->getRouteName()) }}',
                 @endif
-                settings: {
-                    'editor.theme': 'light',
-                    'editor.fontSize': 16,
-                    'tracing.hideTracingResponse': true,
-                },
+                settings: @json($ui->getSettings()),
                 tabs: [
                     @foreach($endpoints as $endpoint)
                     {

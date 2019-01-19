@@ -34,6 +34,11 @@ class Playground
     private const CONFIG_ROUTE_MIDDLEWARE = 'middleware';
 
     /**
+     * @var string
+     */
+    private const CONFIG_SETTINGS = 'settings';
+
+    /**
      * @var bool
      */
     private $enabled;
@@ -54,6 +59,11 @@ class Playground
     private $parent;
 
     /**
+     * @var array
+     */
+    private $settings;
+
+    /**
      * GraphiQL constructor.
      * @param Config $parent
      * @param array $config
@@ -65,6 +75,15 @@ class Playground
         $this->enabled = $config[self::CONFIG_ENABLED] ?? $parent->isDebug();
         $this->route = $config[self::CONFIG_ROUTE] ?? '/graphql/playground';
         $this->middleware = $config[self::CONFIG_ROUTE_MIDDLEWARE] ?? [];
+        $this->settings = $config[self::CONFIG_SETTINGS] ?? [];
+    }
+
+    /**
+     * @return array
+     */
+    public function getSettings(): array
+    {
+        return $this->settings;
     }
 
     /**

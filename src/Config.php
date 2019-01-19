@@ -31,7 +31,7 @@ class Config
     /**
      * @var string
      */
-    private const GRAPHIQL_NODE = 'graphiql';
+    private const PLAYGROUND_NODE = 'playground';
 
     /**
      * @var string
@@ -65,7 +65,7 @@ class Config
             $this->endpoints[$name] = new Endpoint($this, $name, $endpoint);
         }
 
-        $this->graphiql = new Playground($this, (array)($config[static::GRAPHIQL_NODE] ?? []));
+        $this->graphiql = new Playground($this, (array)($config[static::PLAYGROUND_NODE] ?? []));
     }
 
     /**

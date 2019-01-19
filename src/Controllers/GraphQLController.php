@@ -115,7 +115,7 @@ class GraphQLController
         return \view('railt::playground', [
             'endpoints' => $this->config->getEndpoints(),
             'route'     => $request->route(),
-            'graphiql'  => $this->config->getPlayground(),
+            'ui'        => $this->config->getPlayground(),
             'debug'     => $this->config->isDebug(),
         ]);
     }
