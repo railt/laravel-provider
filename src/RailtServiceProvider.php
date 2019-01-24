@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace Railt\LaravelProvider;
 
-use Illuminate\Config\Repository;
+use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Contracts\Routing\Registrar;
 use Illuminate\Support\ServiceProvider;
