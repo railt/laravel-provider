@@ -13,8 +13,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Railt\Foundation\ApplicationInterface;
 use Railt\Http\Exception\GraphQLException;
+use Railt\Http\Factory;
 use Railt\Http\Response;
 use Railt\Http\ResponseInterface;
+use Railt\Io\Exception\NotReadableException;
 use Railt\LaravelProvider\Config;
 use Railt\LaravelProvider\Config\Endpoint;
 use Railt\LaravelProvider\Http\LaravelProvider;
@@ -62,30 +64,18 @@ class GraphQLController
     /**
      * @param Request $request
      * @return ResponseInterface
+     * @throws NotReadableException
      */
     private function execute(Request $request): ResponseInterface
     {
-        try {
-            $endpoint = $this->getEndpointByRoute($request);
+        $endpoint = $this->getEndpointByRoute($request);
 
-            $connection = $this->app->connect($endpoint->getSchema());
+        $connection = $this->app->connect($endpoint->getSchema());
+        $factory = Factory::create(new LaravelProvider($request));
 
-            $response = $connection->requests(new LaravelProvider($request));
+        $response = $connection->request($factory);
 
-            return $response;
-        } catch (\Throwable $e) {
-            $exception = new GraphQLException($e->getMessage(), $e->getCode(), $e);
-
-            if ($this->app->isDebug()) {
-                $exception->publish();
-            }
-
-            $response = new Response([]);
-            $response->debug($this->app->isDebug());
-            $response->withException($exception);
-
-            return $response;
-        }
+        return $response;
     }
 
     /**
