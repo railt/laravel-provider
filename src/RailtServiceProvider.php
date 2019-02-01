@@ -17,6 +17,7 @@ use Railt\Foundation\Application;
 use Railt\Foundation\ApplicationInterface;
 use Railt\Storage\Drivers\Psr16Storage;
 use Railt\Storage\Storage;
+use Symfony\Component\Console\Command\Command;
 
 /**
  * Class RailtServiceProvider
@@ -134,6 +135,19 @@ class RailtServiceProvider extends ServiceProvider
      */
     private function registerCommands(): void
     {
+        /** @var Application $railt */
         $railt = $this->app->make(ApplicationInterface::class);
+
+        if ($railt instanceof Application) {
+            foreach ($railt->getCommands() as $command) {
+                /** @var Command $instance */
+                $instance = $railt->getContainer()->make($command);
+                $instance->setName('railt:' . $instance->getName());
+
+                $this->app->instance($command, $instance);
+            }
+
+            $this->commands($railt->getCommands());
+        }
     }
 }
