@@ -47,6 +47,10 @@ class RailtServiceProvider extends ServiceProvider
 
         $this->mergeConfigFrom(self::CONFIG_PATH, 'railt');
         $this->loadViewsFrom(self::VIEWS_PATH, 'railt');
+
+        $this->registerStorage();
+        $this->registerApplication();
+        $this->registerConfiguration();
     }
 
     /**
@@ -70,35 +74,66 @@ class RailtServiceProvider extends ServiceProvider
     }
 
     /**
-     * @param Repository $repository
-     * @param Registrar $registrar
+     * @return void
      */
-    public function boot(Repository $repository, Registrar $registrar): void
+    private function registerConfiguration(): void
     {
-        $config = new Config($repository->get(Config::ROOT_NODE, []));
+        $this->app->singleton(Config::class, function ($app) {
+            $repository = $app->make(Repository::class);
 
-        //
-        // Register Cache Driver
-        //
+            return new Config($repository->get(Config::ROOT_NODE, []));
+        });
+    }
+
+    /**
+     * @return void
+     */
+    private function registerStorage(): void
+    {
         $this->app->singleton(Storage::class, function (): Storage {
             return new Psr16Storage($this->app->make(Cache::class));
         });
+    }
 
-        //
-        // Register Railt Application
-        //
-        $this->app->bind(ApplicationInterface::class, function () use ($config): ApplicationInterface {
+    /**
+     * @return void
+     */
+    private function registerApplication(): void
+    {
+        $this->app->bind(ApplicationInterface::class, function ($app): ApplicationInterface {
+            $config = $app->make(Config::class);
+
             return new Application($config->isDebug(), $this->app);
         });
+    }
 
-        //
-        // Register endpoint routes
-        //
+    /**
+     * @param Config $config
+     * @param Registrar $registrar
+     */
+    public function boot(Config $config, Registrar $registrar)
+    {
+        if ($this->app->runningInConsole()) {
+            $this->registerCommands();
+        }
+
+        $this->registerRoutes($config, $registrar);
+    }
+
+    /**
+     * @param Config $config
+     * @param Registrar $registrar
+     */
+    private function registerRoutes(Config $config, Registrar $registrar)
+    {
         $config->register($registrar);
+    }
 
-        //
-        // Bind config
-        //
-        $this->app->instance(Config::class, $config);
+    /**
+     * @return void
+     */
+    private function registerCommands(): void
+    {
+        $railt = $this->app->make(ApplicationInterface::class);
     }
 }
