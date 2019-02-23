@@ -111,8 +111,12 @@ class RailtServiceProvider extends ServiceProvider
     /**
      * @param Config $config
      * @param Registrar $registrar
+     * @throws \Railt\Container\Exception\ContainerInvocationException
+     * @throws \Railt\Container\Exception\ContainerResolutionException
+     * @throws \Railt\Container\Exception\ParameterResolutionException
+     * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
      */
-    public function boot(Config $config, Registrar $registrar)
+    public function boot(Config $config, Registrar $registrar): void
     {
         if ($this->app->runningInConsole()) {
             $this->registerCommands();

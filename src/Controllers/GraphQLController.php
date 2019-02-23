@@ -51,14 +51,13 @@ class GraphQLController
     /**
      * @param Request $request
      * @return JsonResponse
+     * @throws NotReadableException
      */
     public function graphqlAction(Request $request): JsonResponse
     {
         $response = $this->execute($request);
 
-        $flags = $response->isDebug() ? \JSON_PRETTY_PRINT : 0;
-
-        return new JsonResponse($response->toArray(), $response->getStatusCode(), [], $flags);
+        return new JsonResponse($response->toArray(), $response->getStatusCode(), [], $response->getJsonOptions());
     }
 
     /**
