@@ -132,16 +132,20 @@ class RailtServiceProvider extends ServiceProvider
 
     /**
      * @return void
+     * @throws \Railt\Container\Exception\ContainerInvocationException
+     * @throws \Railt\Container\Exception\ContainerResolutionException
+     * @throws \Railt\Container\Exception\ParameterResolutionException
+     * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
      */
     private function registerCommands(): void
     {
-        /** @var Application $railt */
+        /** @var ApplicationInterface $railt */
         $railt = $this->app->make(ApplicationInterface::class);
 
         if ($railt instanceof Application) {
             foreach ($railt->getCommands() as $command) {
                 /** @var Command $instance */
-                $instance = $railt->getContainer()->make($command);
+                $instance = $railt->make($command);
                 $instance->setName('railt:' . $instance->getName());
 
                 $this->app->instance($command, $instance);
