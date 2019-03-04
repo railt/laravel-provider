@@ -13,10 +13,9 @@ use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Contracts\Routing\Registrar;
 use Illuminate\Support\ServiceProvider;
+use Psr\SimpleCache\CacheInterface;
 use Railt\Foundation\Application;
 use Railt\Foundation\ApplicationInterface;
-use Railt\Storage\Drivers\Psr16Storage;
-use Railt\Storage\Storage;
 use Symfony\Component\Console\Command\Command;
 
 /**
@@ -91,8 +90,8 @@ class RailtServiceProvider extends ServiceProvider
      */
     private function registerStorage(): void
     {
-        $this->app->singleton(Storage::class, function (): Storage {
-            return new Psr16Storage($this->app->make(Cache::class));
+        $this->app->singleton(CacheInterface::class, function (): CacheInterface {
+            return $this->app->make(Cache::class);
         });
     }
 
