@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace Railt\LaravelProvider;
 
+use Cache\Adapter\PHPArray\ArrayCachePool;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Contracts\Routing\Registrar;
@@ -16,6 +17,7 @@ use Illuminate\Support\ServiceProvider;
 use Psr\SimpleCache\CacheInterface;
 use Railt\Foundation\Application;
 use Railt\Foundation\ApplicationInterface;
+use Railt\Foundation\Config\RepositoryInterface;
 use Symfony\Component\Console\Command\Command;
 
 /**
@@ -90,9 +92,13 @@ class RailtServiceProvider extends ServiceProvider
      */
     private function registerStorage(): void
     {
-        $this->app->singleton(CacheInterface::class, function (): CacheInterface {
-            return $this->app->make(Cache::class);
-        });
+        if (! $this->app->bound(CacheInterface::class)) {
+            $this->app->singleton(CacheInterface::class, function ($app): CacheInterface {
+                $config = $app->make(Config::class);
+
+                return $config->isDebug() ? new ArrayCachePool() : $this->app->make(Cache::class);
+            });
+        }
     }
 
     /**
