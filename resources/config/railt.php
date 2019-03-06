@@ -22,6 +22,8 @@ return [
 
     'debug' => env('RAILT_DEBUG', env('APP_DEBUG', false)),
 
+    'cache' => env('RAILT_CACHE', null),
+
     /*
      |--------------------------------------------------------------------------
      | GraphQL API Endpoints
@@ -39,6 +41,7 @@ return [
             'middleware' => ['api'],
         ],
 
+        //
         // 'admin' => [
         //     'route'      => 'graphql/admin',
         //     'schema'     => resource_path('graphql/admin.graphqls'),
@@ -46,6 +49,7 @@ return [
         //     'name'       => 'admin.railt',
         //     'methods'    => ['GET', 'POST', 'PUT', 'PATCH'],
         // ]
+        //
     ],
 
     /*
@@ -64,27 +68,25 @@ return [
      |
      */
     'playground' => [
-        'enabled'    => env('RAILT_PLAYGROUND_ENABLED', null),
+        'enabled'    => env('RAILT_PLAYGROUND', true),
         'route'      => 'graphql/playground',
-        'middleware' => [
-            'web'
-        ],
+        'middleware' => ['web'],
         'settings'   => [
             'editor.cursorShape'            => 'line',
             'editor.fontFamily'             => "'Source Code Pro', 'Consolas', 'Inconsolata', 'Droid Sans Mono', 'Monaco', monospace",
             'editor.fontSize'               => 16,
             'editor.reuseHeaders'           => true,
-            'editor.theme'                  => 'light',
+            'editor.theme'                  => env('RAILT_PLAYGROUND_THEME', 'light'),
             'general.betaUpdates'           => false,
             'prettier.printWidth'           => 80,
             'prettier.tabWidth'             => 2,
-            'prettier.useTabs'              => false,
+            'prettier.useTabs'              => true,
             'request.credentials'           => 'omit',
-            'schema.polling.enable'         => true,
-            'schema.polling.endpointFilter' => '*localhost*',
-            'schema.polling.interval'       => 2000,
-            'schema.disableComments'        => false,
-            'tracing.hideTracingResponse'   => true,
-        ]
+            'schema.polling.enable'         => env('RAILT_PLAYGROUND_POLLING', false),
+            'schema.polling.endpointFilter' => env('RAILT_PLAYGROUND_POLLING_FILTER', '*localhost*'),
+            'schema.polling.interval'       => env('RAILT_PLAYGROUND_POLLING_INTERVAL', 2000),
+            'schema.disableComments'        => ! env('RAILT_PLAYGROUND_COMMENTS', false),
+            'tracing.hideTracingResponse'   => ! env('RAILT_PLAYGROUND_TRACING', false),
+        ],
     ],
 ];

@@ -96,7 +96,7 @@ class RailtServiceProvider extends ServiceProvider
             $this->app->singleton(CacheInterface::class, function ($app): CacheInterface {
                 $config = $app->make(Config::class);
 
-                return $config->isDebug() ? new ArrayCachePool() : $this->app->make(Cache::class);
+                return $config->isCacheEnabled() ? $this->app->make(Cache::class) : new ArrayCachePool();
             });
         }
     }

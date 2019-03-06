@@ -39,6 +39,11 @@ class Config
     public const DEBUG_NODE = 'debug';
 
     /**
+     * @var string
+     */
+    public const CACHE_IS_ENABLED = 'cache';
+
+    /**
      * @var bool
      */
     private $debug;
@@ -54,6 +59,11 @@ class Config
     private $graphiql;
 
     /**
+     * @var bool
+     */
+    private $cache;
+
+    /**
      * Config constructor.
      * @param array $config
      */
@@ -66,6 +76,16 @@ class Config
         }
 
         $this->graphiql = new Playground($this, (array)($config[static::PLAYGROUND_NODE] ?? []));
+
+        $this->cache = $config[static::CACHE_IS_ENABLED] ?? ! $this->debug;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isCacheEnabled(): bool
+    {
+        return $this->cache;
     }
 
     /**
