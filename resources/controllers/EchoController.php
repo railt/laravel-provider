@@ -10,7 +10,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\GraphQL;
 
 use Illuminate\Support\Str;
-use Railt\Http\InputInterface;
 
 /**
  * Class EchoController
@@ -20,18 +19,12 @@ class EchoController
     /**
      * @param string $message
      * @param bool $upper
-     * @param InputInterface $input
      * @return string
      */
-    public function say(string $message, ?bool $upper, InputInterface $input): string
+    public function say(string $message, ?bool $upper): string
     {
-        $result = [
-            'Your message is "' . ($upper ? Str::upper($message) : $message) . '"',
-            'Path is "' . $input->getPath() . '"',
-            'Alias is "' . $input->getAlias() . '"',
-            'Query is "' . $input->request()->getQuery() . '"'
-        ];
+        $message = $upper ? Str::upper($message) : $message;
 
-        return \implode('; ', $result);
+        return \sprintf('You wrote me a message "%s"', $message);
     }
 }

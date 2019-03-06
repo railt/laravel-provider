@@ -17,9 +17,12 @@ type Query {
     """
     Method "say" provides two arguments: "message" and "upper" and
     will return the message which contains in your required "message" argument.
-       - "message" response message.
-       - "upper" optional argument transforms your message to upper case.
     """
-    say(message: String!, upper: Boolean): String!
+    say(
+        """The response message"""
+        message: String!
+        """Optional argument transforms your message to upper case"""
+        upper: Boolean = false
+    ): String!
         @route(action: "EchoController@say")
 }
