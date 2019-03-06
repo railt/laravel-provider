@@ -18,6 +18,10 @@ use Psr\SimpleCache\CacheInterface;
 use Railt\Foundation\Application;
 use Railt\Foundation\ApplicationInterface;
 use Railt\Foundation\Config\RepositoryInterface;
+use Railt\LaravelProvider\Normalization\ArrayableNormalizer;
+use Railt\LaravelProvider\Normalization\RenderableNormalizer;
+use Railt\Normalization\Factory;
+use Railt\Normalization\NormalizerInterface;
 use Symfony\Component\Console\Command\Command;
 
 /**
@@ -109,8 +113,26 @@ class RailtServiceProvider extends ServiceProvider
         $this->app->bind(ApplicationInterface::class, function ($app): ApplicationInterface {
             $config = $app->make(Config::class);
 
-            return new Application($config->isDebug(), $this->app);
+            return $this->extend(new Application($config->isDebug(), $this->app));
         });
+    }
+
+    /**
+     * @param Application $app
+     * @return Application
+     * @throws \Railt\Container\Exception\ContainerInvocationException
+     * @throws \Railt\Container\Exception\ContainerResolutionException
+     * @throws \Railt\Container\Exception\ParameterResolutionException
+     */
+    private function extend(Application $app): Application
+    {
+        /** @var Factory $factory */
+        $factory = $app->make(NormalizerInterface::class);
+
+        $factory->prepend(new ArrayableNormalizer());
+        $factory->prepend(new RenderableNormalizer());
+
+        return $app;
     }
 
     /**
