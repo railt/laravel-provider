@@ -9,17 +9,16 @@ declare(strict_types=1);
 
 namespace Railt\LaravelProvider\Controllers;
 
-use Illuminate\Http\JsonResponse;
+use Illuminate\View\View;
 use Illuminate\Http\Request;
-use Railt\Foundation\ApplicationInterface;
-use Railt\Http\Exception\GraphQLException;
-use Railt\Http\Factory;
-use Railt\Http\Response;
-use Railt\Http\ResponseInterface;
-use Railt\Io\Exception\NotReadableException;
+use Illuminate\Http\JsonResponse;
+use Railt\Component\Http\Factory;
 use Railt\LaravelProvider\Config;
+use Railt\Foundation\ApplicationInterface;
 use Railt\LaravelProvider\Config\Endpoint;
+use Railt\Component\Http\ResponseInterface;
 use Railt\LaravelProvider\Http\LaravelProvider;
+use Illuminate\Contracts\Container\BindingResolutionException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -39,6 +38,7 @@ class GraphQLController
 
     /**
      * GraphQLController constructor.
+     *
      * @param ApplicationInterface $app
      * @param Config $config
      */
@@ -51,7 +51,7 @@ class GraphQLController
     /**
      * @param Request $request
      * @return JsonResponse
-     * @throws NotReadableException
+     * @throws NotFoundHttpException
      */
     public function graphqlAction(Request $request): JsonResponse
     {
@@ -63,7 +63,7 @@ class GraphQLController
     /**
      * @param Request $request
      * @return ResponseInterface
-     * @throws NotReadableException
+     * @throws NotFoundHttpException
      */
     private function execute(Request $request): ResponseInterface
     {
@@ -72,9 +72,7 @@ class GraphQLController
         $connection = $this->app->connect($endpoint->getSchema());
         $factory = Factory::create(new LaravelProvider($request));
 
-        $response = $connection->request($factory);
-
-        return $response;
+        return $connection->request($factory);
     }
 
     /**
@@ -97,7 +95,8 @@ class GraphQLController
 
     /**
      * @param Request $request
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     * @return \Illuminate\Contracts\View\Factory|View
+     * @throws BindingResolutionException
      */
     public function playgroundAction(Request $request)
     {

@@ -10,8 +10,8 @@ declare(strict_types=1);
 namespace Railt\LaravelProvider\Normalization;
 
 use Illuminate\Contracts\Support\Arrayable;
-use Railt\Normalization\Context\ContextInterface;
-use Railt\Normalization\NormalizerInterface;
+use Railt\Extension\Normalization\Context\ContextInterface;
+use Railt\Extension\Normalization\NormalizerInterface;
 
 /**
  * Class ArrayableNormalizer

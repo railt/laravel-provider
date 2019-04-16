@@ -9,10 +9,10 @@ declare(strict_types=1);
 
 namespace Railt\LaravelProvider\Config;
 
-use Illuminate\Contracts\Routing\Registrar;
-use Railt\Io\File;
-use Railt\Io\Readable;
+use Railt\Component\Io\File;
+use Railt\Component\Io\Readable;
 use Railt\LaravelProvider\Config;
+use Illuminate\Contracts\Routing\Registrar;
 use Railt\LaravelProvider\Controllers\GraphQLController;
 
 /**
@@ -82,6 +82,7 @@ class Endpoint
 
     /**
      * Endpoint constructor.
+     *
      * @param Config $parent
      * @param string $name
      * @param array $config

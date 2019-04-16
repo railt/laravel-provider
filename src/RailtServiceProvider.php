@@ -9,20 +9,25 @@ declare(strict_types=1);
 
 namespace Railt\LaravelProvider;
 
-use Cache\Adapter\PHPArray\ArrayCachePool;
-use Illuminate\Contracts\Config\Repository;
-use Illuminate\Contracts\Cache\Repository as Cache;
-use Illuminate\Contracts\Routing\Registrar;
-use Illuminate\Support\ServiceProvider;
-use Psr\SimpleCache\CacheInterface;
 use Railt\Foundation\Application;
+use Psr\SimpleCache\CacheInterface;
+use Illuminate\Support\ServiceProvider;
+use Cache\Adapter\PHPArray\ArrayCachePool;
 use Railt\Foundation\ApplicationInterface;
-use Railt\Foundation\Config\RepositoryInterface;
+use Railt\Extension\Normalization\Factory;
+use Illuminate\Contracts\Config\Repository;
+use Illuminate\Contracts\Routing\Registrar;
+use Illuminate\Contracts\Container\Container;
+use Symfony\Component\Console\Command\Command;
+use Illuminate\Contracts\Cache\Repository as Cache;
+use Railt\Extension\Normalization\NormalizerInterface;
 use Railt\LaravelProvider\Normalization\ArrayableNormalizer;
 use Railt\LaravelProvider\Normalization\RenderableNormalizer;
-use Railt\Normalization\Factory;
-use Railt\Normalization\NormalizerInterface;
-use Symfony\Component\Console\Command\Command;
+use Illuminate\Contracts\Container\BindingResolutionException;
+use Symfony\Component\Console\Exception\InvalidArgumentException;
+use Railt\Component\Container\Exception\ContainerInvocationException;
+use Railt\Component\Container\Exception\ContainerResolutionException;
+use Railt\Component\Container\Exception\ParameterResolutionException;
 
 /**
  * Class RailtServiceProvider
@@ -46,6 +51,7 @@ class RailtServiceProvider extends ServiceProvider
 
     /**
      * @return void
+     * @throws BindingResolutionException
      */
     public function register(): void
     {
@@ -61,6 +67,7 @@ class RailtServiceProvider extends ServiceProvider
 
     /**
      * @return void
+     * @throws BindingResolutionException
      */
     private function shareResources(): void
     {
@@ -82,25 +89,15 @@ class RailtServiceProvider extends ServiceProvider
     /**
      * @return void
      */
-    private function registerConfiguration(): void
-    {
-        $this->app->singleton(Config::class, function ($app) {
-            $repository = $app->make(Repository::class);
-
-            return new Config($repository->get(Config::ROOT_NODE, []));
-        });
-    }
-
-    /**
-     * @return void
-     */
     private function registerStorage(): void
     {
         if (! $this->app->bound(CacheInterface::class)) {
-            $this->app->singleton(CacheInterface::class, function ($app): CacheInterface {
+            $this->app->singleton(CacheInterface::class, function (Container $app): CacheInterface {
                 $config = $app->make(Config::class);
 
-                return $config->isCacheEnabled() ? $this->app->make(Cache::class) : new ArrayCachePool();
+                return $config->isCacheEnabled()
+                    ? $this->app->make(Cache::class)
+                    : new ArrayCachePool();
             });
         }
     }
@@ -110,7 +107,7 @@ class RailtServiceProvider extends ServiceProvider
      */
     private function registerApplication(): void
     {
-        $this->app->bind(ApplicationInterface::class, function ($app): ApplicationInterface {
+        $this->app->bind(ApplicationInterface::class, function (Container $app): ApplicationInterface {
             $config = $app->make(Config::class);
 
             return $this->extend(new Application($config->isDebug(), $this->app));
@@ -120,9 +117,9 @@ class RailtServiceProvider extends ServiceProvider
     /**
      * @param Application $app
      * @return Application
-     * @throws \Railt\Container\Exception\ContainerInvocationException
-     * @throws \Railt\Container\Exception\ContainerResolutionException
-     * @throws \Railt\Container\Exception\ParameterResolutionException
+     * @throws ContainerInvocationException
+     * @throws ContainerResolutionException
+     * @throws ParameterResolutionException
      */
     private function extend(Application $app): Application
     {
@@ -136,12 +133,25 @@ class RailtServiceProvider extends ServiceProvider
     }
 
     /**
+     * @return void
+     */
+    private function registerConfiguration(): void
+    {
+        $this->app->singleton(Config::class, static function (Container $app) {
+            $repository = $app->make(Repository::class);
+
+            return new Config($repository->get(Config::ROOT_NODE, []));
+        });
+    }
+
+    /**
      * @param Config $config
      * @param Registrar $registrar
-     * @throws \Railt\Container\Exception\ContainerInvocationException
-     * @throws \Railt\Container\Exception\ContainerResolutionException
-     * @throws \Railt\Container\Exception\ParameterResolutionException
-     * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
+     * @throws ContainerInvocationException
+     * @throws ContainerResolutionException
+     * @throws ParameterResolutionException
+     * @throws InvalidArgumentException
+     * @throws BindingResolutionException
      */
     public function boot(Config $config, Registrar $registrar): void
     {
@@ -153,20 +163,12 @@ class RailtServiceProvider extends ServiceProvider
     }
 
     /**
-     * @param Config $config
-     * @param Registrar $registrar
-     */
-    private function registerRoutes(Config $config, Registrar $registrar)
-    {
-        $config->register($registrar);
-    }
-
-    /**
      * @return void
-     * @throws \Railt\Container\Exception\ContainerInvocationException
-     * @throws \Railt\Container\Exception\ContainerResolutionException
-     * @throws \Railt\Container\Exception\ParameterResolutionException
-     * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
+     * @throws ContainerInvocationException
+     * @throws ContainerResolutionException
+     * @throws ParameterResolutionException
+     * @throws InvalidArgumentException
+     * @throws BindingResolutionException
      */
     private function registerCommands(): void
     {
@@ -184,5 +186,14 @@ class RailtServiceProvider extends ServiceProvider
 
             $this->commands($railt->getCommands());
         }
+    }
+
+    /**
+     * @param Config $config
+     * @param Registrar $registrar
+     */
+    private function registerRoutes(Config $config, Registrar $registrar): void
+    {
+        $config->register($registrar);
     }
 }
