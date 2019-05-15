@@ -25,9 +25,9 @@ use Railt\LaravelProvider\Normalization\ArrayableNormalizer;
 use Railt\LaravelProvider\Normalization\RenderableNormalizer;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Symfony\Component\Console\Exception\InvalidArgumentException;
-use Railt\Component\Container\Exception\ContainerInvocationException;
-use Railt\Component\Container\Exception\ContainerResolutionException;
-use Railt\Component\Container\Exception\ParameterResolutionException;
+use Railt\Container\Exception\ContainerInvocationException;
+use Railt\Container\Exception\ContainerResolutionException;
+use Railt\Container\Exception\ParameterResolutionException;
 
 /**
  * Class RailtServiceProvider

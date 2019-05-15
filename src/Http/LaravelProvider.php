@@ -10,7 +10,7 @@ declare(strict_types=1);
 namespace Railt\LaravelProvider\Http;
 
 use Illuminate\Http\Request;
-use Railt\Component\Http\Provider\ProviderInterface;
+use Railt\Http\Provider\ProviderInterface;
 
 /**
  * Class LaravelProvider

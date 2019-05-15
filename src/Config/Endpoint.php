@@ -9,8 +9,8 @@ declare(strict_types=1);
 
 namespace Railt\LaravelProvider\Config;
 
-use Railt\Component\Io\File;
-use Railt\Component\Io\Readable;
+use Phplrt\Io\File;
+use Phplrt\Io\Readable;
 use Railt\LaravelProvider\Config;
 use Illuminate\Contracts\Routing\Registrar;
 use Railt\LaravelProvider\Controllers\GraphQLController;
