@@ -9,8 +9,9 @@ declare(strict_types=1);
 
 namespace Railt\LaravelProvider;
 
-use Illuminate\Contracts\Routing\Registrar;
+use Illuminate\Support\Str;
 use Railt\LaravelProvider\Config\Endpoint;
+use Illuminate\Contracts\Routing\Registrar;
 use Railt\LaravelProvider\Config\Playground;
 
 /**
@@ -26,22 +27,22 @@ class Config
     /**
      * @var string
      */
-    private const ENDPOINTS_NODE = 'endpoints';
-
-    /**
-     * @var string
-     */
-    private const PLAYGROUND_NODE = 'playground';
-
-    /**
-     * @var string
-     */
     public const DEBUG_NODE = 'debug';
 
     /**
      * @var string
      */
     public const CACHE_IS_ENABLED = 'cache';
+
+    /**
+     * @var string
+     */
+    private const ENDPOINTS_NODE = 'endpoints';
+
+    /**
+     * @var string
+     */
+    private const PLAYGROUND_NODE = 'playground';
 
     /**
      * @var bool
@@ -65,6 +66,7 @@ class Config
 
     /**
      * Config constructor.
+     *
      * @param array $config
      */
     public function __construct(array $config)
@@ -85,7 +87,11 @@ class Config
      */
     public function isCacheEnabled(): bool
     {
-        return $this->cache;
+        if (\is_string($this->cache) && Str::lower($this->cache) === 'false') {
+            return false;
+        }
+
+        return (bool)$this->cache;
     }
 
     /**
@@ -93,7 +99,23 @@ class Config
      */
     public function isDebug(): bool
     {
-        return $this->debug;
+        if (\is_string($this->debug) && Str::lower($this->debug) === 'false') {
+            return false;
+        }
+
+        return (bool)$this->debug;
+    }
+
+    /**
+     * @param Registrar $registrar
+     */
+    public function register(Registrar $registrar): void
+    {
+        foreach ($this->getEndpoints() as $endpoint) {
+            $endpoint->register($registrar);
+        }
+
+        $this->getPlayground()->register($registrar);
     }
 
     /**
@@ -110,18 +132,6 @@ class Config
     public function getPlayground(): Playground
     {
         return $this->graphiql;
-    }
-
-    /**
-     * @param Registrar $registrar
-     */
-    public function register(Registrar $registrar): void
-    {
-        foreach ($this->getEndpoints() as $endpoint) {
-            $endpoint->register($registrar);
-        }
-
-        $this->getPlayground()->register($registrar);
     }
 
     /**
