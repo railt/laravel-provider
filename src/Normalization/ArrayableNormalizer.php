@@ -25,10 +25,22 @@ class ArrayableNormalizer implements NormalizerInterface
      */
     public function normalize($result, ContextInterface $context)
     {
-        if (! $result instanceof Arrayable || $context->isScalar()) {
+        if ($context->isScalar()) {
             return $result;
         }
 
-        return $result->toArray();
+        if ($result instanceof Arrayable) {
+            return $result->toArray();
+        }
+
+        if (\is_array($result)) {
+            \array_walk_recursive($result, static function (&$data) {
+                if ($data instanceof Arrayable) {
+                    $data = $data->toArray();
+                }
+            });
+        }
+
+        return $result;
     }
 }
