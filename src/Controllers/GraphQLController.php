@@ -9,16 +9,16 @@ declare(strict_types=1);
 
 namespace Railt\LaravelProvider\Controllers;
 
-use Illuminate\Http\JsonResponse;
+use Illuminate\View\View;
 use Illuminate\Http\Request;
-use Railt\Foundation\ApplicationInterface;
-use Railt\Http\Exception\GraphQLException;
-use Railt\Http\Response;
-use Railt\Http\ResponseInterface;
+use Illuminate\Http\JsonResponse;
+use Railt\Http\Factory;
 use Railt\LaravelProvider\Config;
+use Railt\Foundation\ApplicationInterface;
 use Railt\LaravelProvider\Config\Endpoint;
+use Railt\Http\ResponseInterface;
 use Railt\LaravelProvider\Http\LaravelProvider;
-use Railt\Foundation\Config\RepositoryInterface;
+use Illuminate\Contracts\Container\BindingResolutionException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -38,6 +38,7 @@ class GraphQLController
 
     /**
      * GraphQLController constructor.
+     *
      * @param ApplicationInterface $app
      * @param Config $config
      */
@@ -50,40 +51,28 @@ class GraphQLController
     /**
      * @param Request $request
      * @return JsonResponse
+     * @throws NotFoundHttpException
      */
     public function graphqlAction(Request $request): JsonResponse
     {
         $response = $this->execute($request);
 
-        return new JsonResponse($response->toArray(), $response->getStatusCode(), []);
+        return new JsonResponse($response->toArray(), $response->getStatusCode(), [], $response->getJsonOptions());
     }
 
     /**
      * @param Request $request
      * @return ResponseInterface
+     * @throws NotFoundHttpException
      */
     private function execute(Request $request): ResponseInterface
     {
-        try {
-            $endpoint = $this->getEndpointByRoute($request);
+        $endpoint = $this->getEndpointByRoute($request);
 
-            $connection = $this->app->connect($endpoint->getSchema());
+        $connection = $this->app->connect($endpoint->getSchema());
+        $factory = Factory::create(new LaravelProvider($request));
 
-            $response = $connection->requests(new LaravelProvider($request));
-
-            return $response;
-        } catch (\Throwable $e) {
-            $exception = new GraphQLException($e->getMessage(), $e->getCode(), $e);
-
-            if ($this->app->make(RepositoryInterface::class)->get('debug')) {
-                $exception->publish();
-            }
-
-            $response = new Response([]);
-            $response->withException($exception);
-
-            return $response;
-        }
+        return $connection->request($factory);
     }
 
     /**
@@ -106,14 +95,15 @@ class GraphQLController
 
     /**
      * @param Request $request
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     * @return \Illuminate\Contracts\View\Factory|View
+     * @throws BindingResolutionException
      */
     public function playgroundAction(Request $request)
     {
         return \view('railt::playground', [
             'endpoints' => $this->config->getEndpoints(),
             'route'     => $request->route(),
-            'graphiql'  => $this->config->getPlayground(),
+            'ui'        => $this->config->getPlayground(),
             'debug'     => $this->config->isDebug(),
         ]);
     }
