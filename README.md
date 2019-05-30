@@ -21,11 +21,12 @@ The Laravel Framework Service Provider for Railt.
 {
     "scripts": {
         "post-autoload-dump": [
-            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-            "@php artisan package:discover --ansi",
-            
             // HERE
-            "Railt\\Discovery\\Manifest::discover"
+            "Railt\\Discovery\\Manifest::discover",
+            
+            // ...
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
         ]
     }
 }
