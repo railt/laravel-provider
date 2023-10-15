@@ -180,6 +180,8 @@ final class RailtServiceProvider extends ServiceProvider
 
     private function registerConfigAwareApplications(ConfigRepository $repository, Router $router): void
     {
+        $debug = $repository->get('railt.debug');
+
         /**
          * @var array{
          *     route: non-empty-string,
@@ -200,14 +202,16 @@ final class RailtServiceProvider extends ServiceProvider
             // Create Railt Application
             //
 
-            $this->app->singleton("railt.$name.application", function () use ($app): object {
+            $this->app->singleton("railt.$name.application", function () use ($debug, $app): object {
                 return new Application(
                     executor: match (true) {
                         isset($app['executor'])
                             => $this->app->make($app['executor']),
                         $this->app->bound(ExecutorInterface::class)
                             => $this->app->make(ExecutorInterface::class),
-                        default => $this->app->make(WebonyxExecutor::class),
+                        default => $this->app->make(WebonyxExecutor::class, [
+                            'debug' => (bool)($debug ?? false),
+                        ]),
                     },
                     compiler: match (true) {
                         isset($app['compiler'])
