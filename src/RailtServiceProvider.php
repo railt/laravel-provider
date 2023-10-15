@@ -1,199 +1,331 @@
 <?php
-/**
- * This file is part of Railt package.
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
+
 declare(strict_types=1);
 
 namespace Railt\LaravelProvider;
 
-use Railt\Foundation\Application;
-use Psr\SimpleCache\CacheInterface;
+use Illuminate\Cache\CacheManager;
+use Illuminate\Config\Repository as ConfigRepository;
+use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
-use Cache\Adapter\PHPArray\ArrayCachePool;
+use Psr\SimpleCache\CacheInterface;
+use Railt\Contracts\Http\Factory\ErrorFactoryInterface;
+use Railt\Contracts\Http\Factory\RequestFactoryInterface;
+use Railt\Contracts\Http\Factory\ResponseFactoryInterface;
+use Railt\Contracts\Http\Middleware\MiddlewareInterface;
+use Railt\Executor\Webonyx\WebonyxExecutor;
+use Railt\Extension\Router\RouterExtension;
+use Railt\Foundation\Application;
 use Railt\Foundation\ApplicationInterface;
-use Railt\Extension\Normalization\Factory;
-use Illuminate\Contracts\Config\Repository;
-use Illuminate\Contracts\Routing\Registrar;
-use Illuminate\Contracts\Container\Container;
-use Symfony\Component\Console\Command\Command;
-use Illuminate\Contracts\Cache\Repository as Cache;
-use Railt\Extension\Normalization\NormalizerInterface;
-use Railt\LaravelProvider\Normalization\ArrayableNormalizer;
-use Railt\LaravelProvider\Normalization\RenderableNormalizer;
-use Illuminate\Contracts\Container\BindingResolutionException;
-use Symfony\Component\Console\Exception\InvalidArgumentException;
-use Railt\Container\Exception\ContainerInvocationException;
-use Railt\Container\Exception\ContainerResolutionException;
-use Railt\Container\Exception\ParameterResolutionException;
+use Railt\Foundation\Connection;
+use Railt\Foundation\ConnectionInterface;
+use Railt\Foundation\ExecutorInterface;
+use Railt\Foundation\Extension\ExtensionInterface;
+use Railt\Http\Factory\GraphQLErrorFactory;
+use Railt\Http\Factory\GraphQLRequestFactory;
+use Railt\Http\Factory\GraphQLResponseFactory;
+use Railt\LaravelProvider\Compiler\DirectoryLoader;
+use Railt\LaravelProvider\Controller\GraphQLRequestHandler;
+use Railt\LaravelProvider\Controller\PlaygroundRequestHandler;
+use Railt\SDL\Compiler;
+use Railt\SDL\CompilerInterface;
+use Railt\SDL\Config;
+use Railt\SDL\Dictionary;
 
-/**
- * Class RailtServiceProvider
- */
-class RailtServiceProvider extends ServiceProvider
+final class RailtServiceProvider extends ServiceProvider
 {
-    /**
-     * Local resources directory.
-     */
-    private const RES_PATH = __DIR__ . '/../resources';
-
-    /**
-     * Local config file path
-     */
-    private const CONFIG_PATH = __DIR__ . '/../resources/config/railt.php';
-
-    /**
-     * Views path
-     */
-    private const VIEWS_PATH = __DIR__ . '/../resources/views';
-
-    /**
-     * @return void
-     * @throws BindingResolutionException
-     */
     public function register(): void
     {
-        $this->shareResources();
-
-        $this->mergeConfigFrom(self::CONFIG_PATH, 'railt');
-        $this->loadViewsFrom(self::VIEWS_PATH, 'railt');
-
-        $this->registerStorage();
-        $this->registerApplication();
-        $this->registerConfiguration();
-    }
-
-    /**
-     * @return void
-     * @throws BindingResolutionException
-     */
-    private function shareResources(): void
-    {
-        $views = self::VIEWS_PATH;
-        $configs = self::CONFIG_PATH;
-        $resources = self::RES_PATH . '/schema/schema.graphqls';
-        $controllers = self::RES_PATH . '/controllers/EchoController.php';
-
-        $this->publishes([
-            $views       => \resource_path('views/vendor/railt'),
-            $configs     => \config_path('railt.php'),
-            $resources   => \resource_path('graphql/schema.graphqls'),
-            $controllers => \app_path('Http/Controllers/GraphQL/EchoController.php'),
-        ], 'railt');
-
-        $this->loadViewsFrom(self::VIEWS_PATH, 'railt');
-    }
-
-    /**
-     * @return void
-     */
-    private function registerStorage(): void
-    {
-        if (! $this->app->bound(CacheInterface::class)) {
-            $this->app->singleton(CacheInterface::class, function (Container $app): CacheInterface {
-                $config = $app->make(Config::class);
-
-                return $config->isCacheEnabled()
-                    ? $this->app->make(Cache::class)
-                    : new ArrayCachePool();
-            });
+        if (!$this->app->configurationIsCached()) {
+            $this->registerConfigs();
         }
+
+        $this->registerGlobalServices();
+        $this->registerExtensions();
     }
 
-    /**
-     * @return void
-     */
-    private function registerApplication(): void
+    private function registerConfigs(): void
     {
-        $this->app->bind(ApplicationInterface::class, function (Container $app): ApplicationInterface {
-            $config = $app->make(Config::class);
-
-            return $this->extend(new Application($config->isDebug(), $this->app));
-        });
+        $this->mergeConfigFrom(__DIR__ . '/../resources/config/railt.php', 'railt');
     }
 
-    /**
-     * @param Application $app
-     * @return Application
-     * @throws ContainerInvocationException
-     * @throws ContainerResolutionException
-     * @throws ParameterResolutionException
-     */
-    private function extend(Application $app): Application
+    private function registerGlobalServices(): void
     {
-        /** @var Factory $factory */
-        $factory = $app->make(NormalizerInterface::class);
-
-        $factory->prepend(new ArrayableNormalizer());
-        $factory->prepend(new RenderableNormalizer());
-
-        return $app;
+        $this->app->singleton(ErrorFactoryInterface::class, GraphQLErrorFactory::class);
+        $this->app->singleton(RequestFactoryInterface::class, GraphQLRequestFactory::class);
+        $this->app->singleton(ResponseFactoryInterface::class, GraphQLResponseFactory::class);
     }
 
-    /**
-     * @return void
-     */
-    private function registerConfiguration(): void
+    private function registerExtensions(): void
     {
-        $this->app->singleton(Config::class, static function (Container $app) {
-            $repository = $app->make(Repository::class);
-
-            return new Config($repository->get(Config::ROOT_NODE, []));
-        });
+        $this->registerRouterExtension();
     }
 
-    /**
-     * @param Config $config
-     * @param Registrar $registrar
-     * @throws ContainerInvocationException
-     * @throws ContainerResolutionException
-     * @throws ParameterResolutionException
-     * @throws InvalidArgumentException
-     * @throws BindingResolutionException
-     */
-    public function boot(Config $config, Registrar $registrar): void
+    private function registerRouterExtension(): void
+    {
+        $this->app->singleton(RouterExtension::class);
+    }
+
+    public function boot(ConfigRepository $config, Router $router): void
     {
         if ($this->app->runningInConsole()) {
-            $this->registerCommands();
+            $this->configurePublishing();
         }
 
-        $this->registerRoutes($config, $registrar);
+        $this->registerConfigAwareCompilers($config);
+        $this->registerConfigAwareApplications($config, $router);
+        $this->registerConfigAwarePlaygrounds($config, $router);
     }
 
     /**
-     * @return void
-     * @throws ContainerInvocationException
-     * @throws ContainerResolutionException
-     * @throws ParameterResolutionException
-     * @throws InvalidArgumentException
-     * @throws BindingResolutionException
+     * Configure publishing for the package.
      */
-    private function registerCommands(): void
+    private function configurePublishing(): void
     {
-        /** @var ApplicationInterface $railt */
-        $railt = $this->app->make(ApplicationInterface::class);
+        $this->publishes([
+            __DIR__ . '/../resources/config/railt.php' => $this->app->configPath('railt.php'),
+        ], ['railt', 'railt-config']);
 
-        if ($railt instanceof Application) {
-            foreach ($railt->getCommands() as $command) {
-                /** @var Command $instance */
-                $instance = $railt->make($command);
-                $instance->setName('railt:' . $instance->getName());
+        $this->publishes([
+            __DIR__ . '/../resources/assets/schema.graphqls'
+                => $this->app->resourcePath('graphql/schema.graphqls'),
+            __DIR__ . '/../resources/assets/ExampleController.php'
+                => \app_path('Http/Controllers/GraphQL/ExampleController.php'),
+        ], ['railt', 'railt-assets']);
+    }
 
-                $this->app->instance($command, $instance);
+    private function registerConfigAwareCompilers(ConfigRepository $repository): void
+    {
+        /**
+         * @var array{
+         *     cache: non-empty-string|null,
+         *     spec: non-empty-string,
+         *     generate: array{
+         *         query: non-empty-string|null,
+         *         mutation: non-empty-string|null,
+         *         subscription: non-empty-string|null
+         *     },
+         *     cast: array{
+         *         int_to_float: bool,
+         *         scalar_to_string: bool
+         *     },
+         *     extract: array{
+         *         nullable: bool,
+         *         list: bool
+         *     },
+         *     autoload: list<non-empty-string>,
+         * } $config
+         */
+        foreach ((array)$repository->get('railt.compilers', []) as $name => $config) {
+            $this->app->singleton("railt.$name.compiler", function () use ($config): Compiler {
+                $types = new Dictionary();
+
+                if (isset($config['types']) && $this->app->bound($config['types'])) {
+                    $types = $this->app->make($config['types']);
+                }
+
+                $compiler = new Compiler(
+                    config: new Config(
+                        spec: Config\Specification::from($config['spec'] ?? 'railt'),
+                        generateSchema: new Config\GenerateSchema(
+                            queryTypeName: $config['generate']['query'] ?? null,
+                            mutationTypeName: $config['generate']['mutation'] ?? null,
+                            subscriptionTypeName: $config['generate']['subscription'] ?? null,
+                        ),
+                        castIntToFloat: (bool)($config['cast']['int_to_float'] ?? true),
+                        castScalarToString: (bool)($config['cast']['scalar_to_string'] ?? true),
+                        castNullableTypeToDefaultValue: (bool)($config['extract']['nullable'] ?? true),
+                        castListTypeToDefaultValue: (bool)($config['extract']['list'] ?? true)
+                    ), cache: $this->createCache($config['cache'] ?? null), types: $types,
+                );
+
+                foreach ((array)($config['autoload'] ?? []) as $directory) {
+                    $compiler->addLoader(new DirectoryLoader($directory));
+                }
+
+                return $compiler;
+            });
+
+            if (!$this->app->bound(Compiler::class)) {
+                $this->app->alias("railt.$name.compiler", Compiler::class);
             }
 
-            $this->commands($railt->getCommands());
+            if (!$this->app->bound(CompilerInterface::class)) {
+                $this->app->alias("railt.$name.compiler", CompilerInterface::class);
+            }
+        }
+    }
+
+    private function createCache(?string $name): ?CacheInterface
+    {
+        if (!$this->app->bound('cache')) {
+            return null;
+        }
+
+        /** @var CacheManager $manager */
+        $manager = $this->app->get('cache');
+
+        if (!$manager instanceof CacheManager) {
+            return null;
+        }
+
+        $driver = $manager->driver($name);
+
+        if ($driver instanceof CacheInterface) {
+            return $driver;
+        }
+
+        return null;
+    }
+
+    private function registerConfigAwareApplications(ConfigRepository $repository, Router $router): void
+    {
+        /**
+         * @var array{
+         *     route: non-empty-string,
+         *     methods: list<non-empty-string>,
+         *     schema: non-empty-string,
+         *     variables: array<non-empty-string, mixed>,
+         *     executor: non-empty-string|null,
+         *     compiler: non-empty-string|null,
+         *     middleware: list<non-empty-string|class-string<MiddlewareInterface>>,
+         *     extensions: list<non-empty-string|class-string<ExtensionInterface>>
+         * } $app
+         */
+        foreach ((array)$repository->get('railt.endpoints', []) as $name => $app) {
+            $controller = "railt.$name.graphql_controller";
+            $route = "railt.$name";
+
+            //
+            // Create Railt Application
+            //
+
+            $this->app->singleton("railt.$name.application", function () use ($app): object {
+                return new Application(
+                    executor: match (true) {
+                        isset($app['executor'])
+                            => $this->app->make($app['executor']),
+                        $this->app->bound(ExecutorInterface::class)
+                            => $this->app->make(ExecutorInterface::class),
+                        default => $this->app->make(WebonyxExecutor::class),
+                    },
+                    compiler: match (true) {
+                        isset($app['compiler'])
+                            => $this->app->bound($app['compiler'])
+                                ? $this->app->make($app['compiler'])
+                                : $this->app->make("railt.{$app['compiler']}.compiler"),
+                        $this->app->bound(CompilerInterface::class)
+                            => $this->app->make(CompilerInterface::class),
+                        default => $this->app->make(Compiler::class),
+                    },
+                    extensions: collect($app['extensions'] ?? [])
+                        ->map(fn (string $name): object => $this->app->make($name)),
+                    dispatcher: $this->app->bound('events')
+                        ? new EventDispatcherAdapter($this->app->make('events'))
+                        : null,
+                );
+            });
+
+            if (!$this->app->bound(Application::class)) {
+                $this->app->alias("railt.$name.application", Application::class);
+            }
+
+            if (!$this->app->bound(ApplicationInterface::class)) {
+                $this->app->alias("railt.$name.application", ApplicationInterface::class);
+            }
+
+            //
+            // Create Railt Connection
+            //
+
+            $this->app->singleton("railt.$name.connection", function () use ($name, $app): object {
+                /** @var Application $application */
+                $application = $this->app->make("railt.$name.application");
+
+                assert($application instanceof Application);
+
+                return $application->connect(
+                    schema: new \SplFileInfo($app['schema']),
+                    variables: (array)($app['variables'] ?? []),
+                );
+            });
+
+            if (!$this->app->bound(Connection::class)) {
+                $this->app->alias("railt.$name.connection", Connection::class);
+            }
+
+            if (!$this->app->bound(ConnectionInterface::class)) {
+                $this->app->alias("railt.$name.connection", ConnectionInterface::class);
+            }
+
+            //
+            // Create Railt GraphQL Request Handler
+            //
+
+            $this->app->singleton($controller, function () use ($name, $app): object {
+                return new GraphQLRequestHandler(
+                    connection: $this->app->make("railt.$name.connection"),
+                    requests: $this->app->make(RequestFactoryInterface::class),
+                );
+            });
+
+            if ($this->app->routesAreCached()) {
+                continue;
+            }
+
+            $router->match(
+                methods: (array)($app['methods'] ?? ['post']),
+                uri: $app['route'],
+                action: "$controller@__invoke",
+            )
+                ->middleware((array)($config['middleware'] ?? []))
+                ->name($route);
         }
     }
 
     /**
-     * @param Config $config
-     * @param Registrar $registrar
+     * Registers the controllers and routes for the playground.
      */
-    private function registerRoutes(Config $config, Registrar $registrar): void
+    private function registerConfigAwarePlaygrounds(ConfigRepository $repository, Router $router): void
     {
-        $config->register($registrar);
+        /**
+         * @var array{
+         *     route: non-empty-string,
+         *     endpoint: non-empty-string,
+         *     methods: list<non-empty-string>,
+         *     middleware: list<non-empty-string>,
+         *     headers: array<non-empty-string, non-empty-string>
+         * } $config
+         */
+        foreach ((array)$repository->get('railt.playground', []) as $name => $config) {
+            $controller = "railt.$name.graphiql_controller";
+            $route = "railt.$name.playground";
+
+            $this->app->singleton($controller, function () use ($repository, $config): object {
+                $uri = $repository->get("railt.endpoints.{$config['endpoint']}.route");
+
+                if (!\is_string($uri)) {
+                    $message = \vsprintf('GraphQL endpoint [railt.endpoint.%s] not found.', [
+                        $config['endpoint'] ?? '<unknown>',
+                    ]);
+
+                    throw new \InvalidArgumentException($message);
+                }
+
+                return new PlaygroundRequestHandler($uri, (array)$config['headers']);
+            });
+
+            if ($this->app->routesAreCached()) {
+                continue;
+            }
+
+            $router->match(
+                methods: (array)($config['methods'] ?? ['get']),
+                uri: $config['route'],
+                action: "$controller@__invoke",
+            )
+                ->middleware((array)($config['middleware'] ?? []))
+                ->name($route);
+        }
     }
 }

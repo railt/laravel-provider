@@ -1,0 +1,8 @@
+schema {
+    query: Query
+}
+
+type Query {
+    say(message: String! = "Hello"): String!
+        @route(action: "App\Http\Controllers\GraphQL\ExampleController@say")
+}
