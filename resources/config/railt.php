@@ -10,7 +10,7 @@ return [
     |
     | default: false
     */
-    'debug' => false,
+    'debug' => (bool)env('RAILT_DEBUG', env('APP_DEBUG', false)),
 
     /*
     |---------------------------------------------------------------------------
@@ -37,7 +37,7 @@ return [
             |
             | default: null
             */
-            'cache' => null,
+            'cache' => env('RAILT_CACHE', env('CACHE_DRIVER', 'file')),
 
             /*
             | Compiler's specification version.
@@ -269,7 +269,9 @@ return [
             |
             | default: []
             */
-            'middleware' => [],
+            'middleware' => [
+                'api',
+            ],
 
             /*
             | List of Railt GraphQL extensions (plugins).
@@ -333,7 +335,9 @@ return [
             |
             | default: []
             */
-            'middleware' => [],
+            'middleware' => [
+                'web',
+            ],
 
             /*
             | List of additional optional headers that be used for each request.
