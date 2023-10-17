@@ -278,10 +278,11 @@ return [
             |
             | Should be instance of `Railt\Foundation\Extension\ExtensionInterface`.
             |
-            | default: [ Railt\Extension\Router\RouterExtension ]
+            | default: []
             */
             'extensions' => [
                 Railt\Extension\Router\RouterExtension::class,
+                Railt\Extension\DefaultValue\DefaultValueExtension::class,
             ],
         ],
     ],
